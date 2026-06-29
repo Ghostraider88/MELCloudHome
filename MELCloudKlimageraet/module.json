@@ -3,11 +3,8 @@
     "name": "MELCloud Klimageraet",
     "type": 3,
     "vendor": "Mitsubishi Electric",
-    "aliases": [
-        "MELCloud Klimagerät",
-        "MELCloud Klima",
-        "Mitsubishi Klima"
-    ],
+    "url": "https://github.com/ghostraider88/MELCloudHome",
+    "aliases": [],
     "parentRequirements": [
         "{7D0C324F-EF82-4716-A8A0-00006378D27F}"
     ],

@@ -9,10 +9,9 @@ declare(strict_types=1);
  * vom MELCloud-Connection-Splitter (ReceiveData) und schickt Steuerbefehle
  * über den Splitter an die Cloud (SendDataToParent).
  */
-class MELCloudKlimageraet extends IPSModule
+class MELCloudKlimageraet extends IPSModuleStrict
 {
-    private const RX_TO_PARENT      = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
-    private const CONNECTION_MODULE = '{5544D6EC-888E-48C1-AB58-0000739AFC1E}';
+    private const RX_TO_PARENT = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
 
     // int <-> API-String Zuordnungen
     private const MODE_MAP   = [0 => 'Automatic', 1 => 'Heat', 2 => 'Cool', 3 => 'Dry', 4 => 'Fan'];
@@ -20,16 +19,14 @@ class MELCloudKlimageraet extends IPSModule
     private const VANE_V_MAP = [0 => 'Auto', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 7 => 'Swing'];
     private const VANE_H_MAP = [0 => 'Auto', 1 => 'Left', 2 => 'LeftCentre', 3 => 'Centre', 4 => 'RightCentre', 5 => 'Right', 7 => 'Swing'];
 
-    public function Create()
+    public function Create(): void
     {
         parent::Create();
 
         $this->RegisterPropertyString('UnitID', '');
-
-        $this->ConnectParent(self::CONNECTION_MODULE);
     }
 
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         parent::ApplyChanges();
 
@@ -46,7 +43,7 @@ class MELCloudKlimageraet extends IPSModule
         // Reine Anzeige-Variablen
         $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, '~Temperature', 7, true);
         $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_INTEGER, 'MELCloud.Status', 8, true);
-        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Connect', 9, true);
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Switch', 9, true);
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, '~Alert', 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
@@ -56,10 +53,10 @@ class MELCloudKlimageraet extends IPSModule
             $this->EnableAction($ident);
         }
 
-        // Nur Daten des eigenen Geräts empfangen
+        // Filter auf DataID – UnitID-Prüfung erfolgt in ReceiveData
         $unitID = $this->ReadPropertyString('UnitID');
         if ($unitID !== '') {
-            $this->SetReceiveDataFilter('.*"UnitID":"' . preg_quote($unitID, '/') . '".*');
+            $this->SetReceiveDataFilter('.*2FD07B1C-5822-48B2-B394-0000776DF537.*');
             $this->SetStatus(102);
         } else {
             $this->SetReceiveDataFilter('(?!)'); // nichts empfangen, solange unkonfiguriert
@@ -71,15 +68,23 @@ class MELCloudKlimageraet extends IPSModule
      * Datenempfang vom Splitter
      * ---------------------------------------------------------------------- */
 
-    public function ReceiveData($JSONString)
+    public function ReceiveData(string $JSONString): string
     {
-        $data = json_decode($JSONString, true);
-        if (!isset($data['Buffer']) || !is_array($data['Buffer'])) {
+        $this->SendDebug('ReceiveData', 'Empfangen (100 Zeichen): ' . substr($JSONString, 0, 100), 0);
+        $outer = json_decode($JSONString, true);
+        if (!isset($outer['Buffer']) || !is_string($outer['Buffer'])) {
+            $this->SendDebug('ReceiveData', 'Kein Buffer in Daten', 0);
             return '';
         }
-        $buffer = $data['Buffer'];
-
-        if (($buffer['UnitID'] ?? null) !== $this->ReadPropertyString('UnitID')) {
+        $buffer = json_decode(hex2bin($outer['Buffer']), true);
+        if (!is_array($buffer)) {
+            $this->SendDebug('ReceiveData', 'Buffer konnte nicht dekodiert werden', 0);
+            return '';
+        }
+        $myID = $this->ReadPropertyString('UnitID');
+        $bufID = (string) ($buffer['UnitID'] ?? '');
+        $this->SendDebug('ReceiveData', 'Buffer-UnitID=' . $bufID . ' eigene=' . $myID, 0);
+        if ($bufID !== $myID) {
             return '';
         }
 
@@ -129,7 +134,7 @@ class MELCloudKlimageraet extends IPSModule
      * Steuerung
      * ---------------------------------------------------------------------- */
 
-    public function RequestAction($Ident, $Value)
+    public function RequestAction(string $Ident, mixed $Value): void
     {
         switch ($Ident) {
             case 'Power':
@@ -196,10 +201,12 @@ class MELCloudKlimageraet extends IPSModule
             throw new Exception($this->Translate('Device is not configured.'));
         }
 
-        $result = $this->SendDataToParent(json_encode([
-            'DataID'  => self::RX_TO_PARENT,
-            'UnitID'  => $unitID,
-            'Control' => $control
+        $result = $this->SendDataToParent((string) json_encode([
+            'DataID' => self::RX_TO_PARENT,
+            'Buffer' => bin2hex((string) json_encode([
+                'UnitID'  => $unitID,
+                'Control' => $control
+            ]))
         ]));
 
         $decoded = json_decode((string) $result, true);

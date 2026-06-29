@@ -3,11 +3,8 @@
     "name": "MELCloud Connection",
     "type": 2,
     "vendor": "Mitsubishi Electric",
-    "aliases": [
-        "MELCloud",
-        "MELCloud Home",
-        "MELCloud Verbindung"
-    ],
+    "url": "https://github.com/ghostraider88/MELCloudHome",
+    "aliases": [],
     "parentRequirements": [],
     "childRequirements": [
         "{2FD07B1C-5822-48B2-B394-0000776DF537}"
