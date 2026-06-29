@@ -244,10 +244,12 @@ class MELCloudConnection extends IPSModuleStrict
     private function fetchContext(): array
     {
         $response = $this->apiRequest('GET', '/context');
-        $data     = json_decode($response, true);
+        $this->SendDebug('fetchContext', 'Rohe Antwort (1500 Zeichen): ' . substr($response, 0, 1500), 0);
+        $data = json_decode($response, true);
         if (!is_array($data)) {
             throw new Exception('Ungültige /context-Antwort');
         }
+        $this->SendDebug('fetchContext', 'Top-Level-Keys: ' . implode(', ', array_keys($data)), 0);
         return $data;
     }
 
@@ -263,6 +265,7 @@ class MELCloudConnection extends IPSModuleStrict
     {
         $devices = [];
         $this->collectAtaDevices($context, $devices);
+        $this->SendDebug('extractDevices', count($devices) . ' Geräte gefunden', 0);
         return $devices;
     }
 
