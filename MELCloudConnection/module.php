@@ -213,11 +213,19 @@ class MELCloudConnection extends IPSModuleStrict
                 'instanceID' => $instanceID,
                 'UnitID'     => $unitID,
                 'Name'       => $device['Name'] ?? $unitID,
+                // Array-Form: erst das Gerät, dann der Splitter als Eltern-Verbindung.
+                // Ohne configuration im 2. Element wird die bestehende (hostende)
+                // Splitter-Instanz wiederverwendet statt eine neue anzulegen.
                 'create'     => [
-                    'moduleID'      => $deviceModuleID,
-                    'name'          => $device['Name'] ?? $unitID,
-                    'configuration' => [
-                        'UnitID' => $unitID
+                    [
+                        'moduleID'      => $deviceModuleID,
+                        'name'          => $device['Name'] ?? $unitID,
+                        'configuration' => [
+                            'UnitID' => $unitID
+                        ]
+                    ],
+                    [
+                        'moduleID' => '{5544D6EC-888E-48C1-AB58-0000739AFC1E}'
                     ]
                 ]
             ];
