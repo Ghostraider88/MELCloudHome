@@ -30,31 +30,6 @@
             "type": "Button",
             "caption": "Login testen",
             "onClick": "MELC_TestLogin($id);"
-        },
-        {
-            "type": "Configurator",
-            "name": "Configurator",
-            "caption": "Klimageräte",
-            "rowCount": 10,
-            "add": false,
-            "delete": true,
-            "sort": {
-                "column": "Name",
-                "direction": "ascending"
-            },
-            "columns": [
-                {
-                    "caption": "Name",
-                    "name": "Name",
-                    "width": "auto"
-                },
-                {
-                    "caption": "Geräte-ID",
-                    "name": "UnitID",
-                    "width": "320px"
-                }
-            ],
-            "values": []
         }
     ],
     "status": [

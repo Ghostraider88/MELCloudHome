@@ -172,66 +172,22 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /* -------------------------------------------------------------------------
-     * Konfigurationsformular inkl. Konfigurator-Liste
+     * Exportierte Funktion für den Konfigurator
      * ---------------------------------------------------------------------- */
 
-    public function GetConfigurationForm(): string
+    /**
+     * Liefert die Geräteliste als JSON-String an den MELCloud Configurator.
+     */
+    public function GetDeviceListJSON(): string
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-
-        $values = [];
         try {
-            if ($this->ReadPropertyString('Email') !== '' && $this->ReadPropertyString('Password') !== '') {
-                $context = $this->fetchContext();
-                $values  = $this->buildConfiguratorValues($this->extractDevices($context));
-            }
+            $context = $this->fetchContext();
+            $devices = $this->extractDevices($context);
+            return (string) json_encode($devices);
         } catch (Exception $e) {
             $this->SendDebug(__FUNCTION__, $e->getMessage(), 0);
+            return '[]';
         }
-
-        foreach ($form['actions'] as &$action) {
-            if (isset($action['name']) && $action['name'] === 'Configurator') {
-                $action['values'] = $values;
-            }
-        }
-        unset($action);
-
-        return (string) json_encode($form);
-    }
-
-    private function buildConfiguratorValues(array $devices): array
-    {
-        $deviceModuleID = '{73860314-C683-4067-B8BC-00005121318D}';
-        $existing       = $this->getExistingDeviceInstances($deviceModuleID);
-
-        $values = [];
-        foreach ($devices as $device) {
-            $unitID     = (string) $device['UnitID'];
-            $instanceID = $existing[$unitID] ?? 0;
-
-            $values[] = [
-                'instanceID' => $instanceID,
-                'UnitID'     => $unitID,
-                'Name'       => $device['Name'] ?? $unitID,
-                // Array-Form: erst das Gerät, dann der Splitter als Eltern-Verbindung.
-                // Ohne configuration im 2. Element wird die bestehende (hostende)
-                // Splitter-Instanz wiederverwendet statt eine neue anzulegen.
-                'create'     => [
-                    [
-                        'moduleID'      => $deviceModuleID,
-                        'name'          => $device['Name'] ?? $unitID,
-                        'configuration' => [
-                            'UnitID' => $unitID
-                        ]
-                    ],
-                    [
-                        'moduleID' => '{5544D6EC-888E-48C1-AB58-0000739AFC1E}'
-                    ]
-                ]
-            ];
-        }
-
-        return $values;
     }
 
     /**
