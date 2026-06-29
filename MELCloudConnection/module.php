@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Steuerbefehle der Kinder werden per ForwardData entgegengenommen und als
  * PUT /api/devices/{unit}/control an die Cloud gesendet.
  */
-class MELCloudConnection extends IPSModule
+class MELCloudConnection extends IPSModuleStrict
 {
     // OAuth / API Endpunkte (abgeleitet aus andrew-blake/melcloudhome)
     private const AUTH_BASE_URL    = 'https://auth.melcloudhome.com';
@@ -23,7 +23,7 @@ class MELCloudConnection extends IPSModule
     // Datenschnittstelle zu den Kind-Instanzen
     private const TX_TO_CHILD = '{2FD07B1C-5822-48B2-B394-0000776DF537}';
 
-    public function Create()
+    public function Create(): void
     {
         parent::Create();
 
@@ -41,7 +41,7 @@ class MELCloudConnection extends IPSModule
         $this->RegisterTimer('UpdateEnergy', 0, 'MELC_UpdateEnergy($_IPS[\'TARGET\']);');
     }
 
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         parent::ApplyChanges();
 
@@ -102,9 +102,9 @@ class MELCloudConnection extends IPSModule
         }
 
         foreach ($devices as $device) {
-            $this->SendDataToChildren(json_encode([
+            $this->SendDataToChildren((string) json_encode([
                 'DataID' => self::TX_TO_CHILD,
-                'Buffer' => $device
+                'Buffer' => bin2hex((string) json_encode($device))
             ]));
         }
     }
@@ -121,12 +121,12 @@ class MELCloudConnection extends IPSModule
                 $this->SendDebug(__FUNCTION__, $unitID . ': ' . $e->getMessage(), 0);
                 continue;
             }
-            $this->SendDataToChildren(json_encode([
+            $this->SendDataToChildren((string) json_encode([
                 'DataID' => self::TX_TO_CHILD,
-                'Buffer' => [
+                'Buffer' => bin2hex((string) json_encode([
                     'UnitID'         => $unitID,
                     'EnergyConsumed' => $energy
-                ]
+                ]))
             ]));
         }
     }
@@ -135,21 +135,22 @@ class MELCloudConnection extends IPSModule
      * Datenfluss von den Kindern (Steuerbefehle)
      * ---------------------------------------------------------------------- */
 
-    public function ForwardData($JSONString)
+    public function ForwardData(string $JSONString): string
     {
-        $data = json_decode($JSONString, true);
+        $outer = json_decode($JSONString, true);
+        $data  = isset($outer['Buffer']) ? json_decode(hex2bin($outer['Buffer']), true) : null;
         if (!is_array($data) || !isset($data['UnitID'], $data['Control'])) {
-            return json_encode(['success' => false, 'error' => 'invalid request']);
+            return (string) json_encode(['success' => false, 'error' => 'invalid request']);
         }
 
         try {
             $this->sendControl($data['UnitID'], $data['Control']);
             // Nach einer Steuerung zeitnah aktualisieren
             $this->UpdateStatus();
-            return json_encode(['success' => true]);
+            return (string) json_encode(['success' => true]);
         } catch (Exception $e) {
             $this->SendDebug(__FUNCTION__, 'Control-Fehler: ' . $e->getMessage(), 0);
-            return json_encode(['success' => false, 'error' => $e->getMessage()]);
+            return (string) json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 
@@ -157,7 +158,7 @@ class MELCloudConnection extends IPSModule
      * Konfigurationsformular inkl. Konfigurator-Liste
      * ---------------------------------------------------------------------- */
 
-    public function GetConfigurationForm()
+    public function GetConfigurationForm(): string
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
 
@@ -178,7 +179,7 @@ class MELCloudConnection extends IPSModule
         }
         unset($action);
 
-        return json_encode($form);
+        return (string) json_encode($form);
     }
 
     private function buildConfiguratorValues(array $devices): array

@@ -9,7 +9,7 @@ declare(strict_types=1);
  * vom MELCloud-Connection-Splitter (ReceiveData) und schickt Steuerbefehle
  * über den Splitter an die Cloud (SendDataToParent).
  */
-class MELCloudKlimageraet extends IPSModule
+class MELCloudKlimageraet extends IPSModuleStrict
 {
     private const RX_TO_PARENT      = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
     private const CONNECTION_MODULE = '{5544D6EC-888E-48C1-AB58-0000739AFC1E}';
@@ -20,7 +20,7 @@ class MELCloudKlimageraet extends IPSModule
     private const VANE_V_MAP = [0 => 'Auto', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 7 => 'Swing'];
     private const VANE_H_MAP = [0 => 'Auto', 1 => 'Left', 2 => 'LeftCentre', 3 => 'Centre', 4 => 'RightCentre', 5 => 'Right', 7 => 'Swing'];
 
-    public function Create()
+    public function Create(): void
     {
         parent::Create();
 
@@ -29,7 +29,7 @@ class MELCloudKlimageraet extends IPSModule
         $this->ConnectParent(self::CONNECTION_MODULE);
     }
 
-    public function ApplyChanges()
+    public function ApplyChanges(): void
     {
         parent::ApplyChanges();
 
@@ -71,13 +71,16 @@ class MELCloudKlimageraet extends IPSModule
      * Datenempfang vom Splitter
      * ---------------------------------------------------------------------- */
 
-    public function ReceiveData($JSONString)
+    public function ReceiveData(string $JSONString): string
     {
-        $data = json_decode($JSONString, true);
-        if (!isset($data['Buffer']) || !is_array($data['Buffer'])) {
+        $outer = json_decode($JSONString, true);
+        if (!isset($outer['Buffer']) || !is_string($outer['Buffer'])) {
             return '';
         }
-        $buffer = $data['Buffer'];
+        $buffer = json_decode(hex2bin($outer['Buffer']), true);
+        if (!is_array($buffer)) {
+            return '';
+        }
 
         if (($buffer['UnitID'] ?? null) !== $this->ReadPropertyString('UnitID')) {
             return '';
@@ -129,7 +132,7 @@ class MELCloudKlimageraet extends IPSModule
      * Steuerung
      * ---------------------------------------------------------------------- */
 
-    public function RequestAction($Ident, $Value)
+    public function RequestAction(string $Ident, mixed $Value): void
     {
         switch ($Ident) {
             case 'Power':
@@ -196,10 +199,12 @@ class MELCloudKlimageraet extends IPSModule
             throw new Exception($this->Translate('Device is not configured.'));
         }
 
-        $result = $this->SendDataToParent(json_encode([
-            'DataID'  => self::RX_TO_PARENT,
-            'UnitID'  => $unitID,
-            'Control' => $control
+        $result = $this->SendDataToParent((string) json_encode([
+            'DataID' => self::RX_TO_PARENT,
+            'Buffer' => bin2hex((string) json_encode([
+                'UnitID'  => $unitID,
+                'Control' => $control
+            ]))
         ]));
 
         $decoded = json_decode((string) $result, true);

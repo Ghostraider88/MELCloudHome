@@ -3,6 +3,7 @@
     "name": "MELCloud Klimageraet",
     "type": 3,
     "vendor": "Mitsubishi Electric",
+    "url": "https://github.com/ghostraider88/MELCloudHome",
     "aliases": [
         "MELCloud Klimagerät",
         "MELCloud Klima",
