@@ -254,67 +254,59 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /**
-     * Extrahiert die ATA-Klimageräte aus der /context-Antwort in ein normalisiertes Format.
+     * Extrahiert die ATA-Klimageräte aus der /context-Antwort.
      *
-     * Die Cloud liefert Gebäude (buildings) mit Geräten. Die genaue Verschachtelung
-     * kann variieren; daher wird rekursiv nach Geräten mit ATA-typischen Feldern gesucht.
+     * Struktur: context.buildings[*].airToAirUnits[*]
+     * Status-Felder stehen im settings-Array als {name, value}-Paare.
      *
      * @return array<int,array<string,mixed>>
      */
     private function extractDevices(array $context): array
     {
         $devices = [];
-        $this->collectAtaDevices($context, $devices);
+        foreach ($context['buildings'] ?? [] as $building) {
+            foreach ($building['airToAirUnits'] ?? [] as $unit) {
+                $normalized = $this->normalizeUnit($unit);
+                if ($normalized !== null) {
+                    $devices[] = $normalized;
+                }
+            }
+        }
         $this->SendDebug('extractDevices', count($devices) . ' Geräte gefunden', 0);
         return $devices;
     }
 
-    private function collectAtaDevices($node, array &$devices): void
+    private function normalizeUnit(array $unit): ?array
     {
-        if (!is_array($node)) {
-            return;
-        }
-
-        // Ein ATA-Gerät erkennen wir an typischen Feldern
-        $isDevice = $this->hasAnyKey($node, ['Power', 'power']) &&
-                    $this->hasAnyKey($node, ['OperationMode', 'operationMode', 'SetTemperature', 'setTemperature']);
-
-        if ($isDevice) {
-            $normalized = $this->normalizeDevice($node);
-            if ($normalized !== null) {
-                $devices[] = $normalized;
-                return;
-            }
-        }
-
-        foreach ($node as $value) {
-            if (is_array($value)) {
-                $this->collectAtaDevices($value, $devices);
-            }
-        }
-    }
-
-    private function normalizeDevice(array $raw): ?array
-    {
-        $unitID = $this->pick($raw, ['unitId', 'unitID', 'id', 'deviceId', 'DeviceID']);
+        $unitID = $unit['id'] ?? null;
         if ($unitID === null) {
             return null;
         }
 
+        // settings ist ein [{name, value}]-Array → in eine Map umwandeln
+        $settings = [];
+        foreach ($unit['settings'] ?? [] as $s) {
+            if (isset($s['name'])) {
+                $settings[$s['name']] = $s['value'] ?? null;
+            }
+        }
+
+        $power = isset($settings['Power']) ? strtolower((string) $settings['Power']) !== 'false' : false;
+
         return [
             'UnitID'                  => (string) $unitID,
-            'Name'                    => $this->pick($raw, ['givenDisplayName', 'displayName', 'name', 'Name']) ?? (string) $unitID,
-            'Power'                   => (bool) $this->pick($raw, ['Power', 'power']),
-            'OperationMode'           => $this->pick($raw, ['OperationMode', 'operationMode']),
-            'SetTemperature'          => $this->pick($raw, ['SetTemperature', 'setTemperature']),
-            'RoomTemperature'         => $this->pick($raw, ['RoomTemperature', 'roomTemperature']),
-            'SetFanSpeed'             => $this->pick($raw, ['SetFanSpeed', 'setFanSpeed']),
-            'VaneVerticalDirection'   => $this->pick($raw, ['VaneVerticalDirection', 'vaneVerticalDirection']),
-            'VaneHorizontalDirection' => $this->pick($raw, ['VaneHorizontalDirection', 'vaneHorizontalDirection']),
-            'InStandbyMode'           => (bool) $this->pick($raw, ['InStandbyMode', 'inStandbyMode']),
-            'IsInError'               => (bool) $this->pick($raw, ['IsInError', 'isInError']),
-            'rssi'                    => $this->pick($raw, ['rssi', 'Rssi', 'RSSI']),
-            'Connected'               => $this->pick($raw, ['rssi', 'Rssi', 'RSSI']) !== null
+            'Name'                    => $unit['givenDisplayName'] ?? $unit['displayName'] ?? (string) $unitID,
+            'Power'                   => $power,
+            'OperationMode'           => $settings['OperationMode'] ?? null,
+            'SetTemperature'          => isset($settings['SetTemperature']) ? (float) $settings['SetTemperature'] : null,
+            'RoomTemperature'         => isset($settings['RoomTemperature']) ? (float) $settings['RoomTemperature'] : null,
+            'SetFanSpeed'             => $settings['SetFanSpeed'] ?? $settings['ActualFanSpeed'] ?? null,
+            'VaneVerticalDirection'   => $settings['VaneVerticalDirection'] ?? null,
+            'VaneHorizontalDirection' => $settings['VaneHorizontalDirection'] ?? null,
+            'InStandbyMode'           => isset($settings['InStandbyMode']) && strtolower((string) $settings['InStandbyMode']) !== 'false',
+            'IsInError'               => isset($settings['IsInError']) && strtolower((string) $settings['IsInError']) !== 'false',
+            'rssi'                    => isset($settings['rssi']) ? (int) $settings['rssi'] : null,
+            'Connected'               => true
         ];
     }
 
