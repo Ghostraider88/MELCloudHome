@@ -78,6 +78,7 @@ class MELCloudConnection extends IPSModuleStrict
             $context = $this->fetchContext();
             $devices = $this->extractDevices($context);
             echo sprintf($this->Translate('Login successful. %d air conditioner(s) found.'), count($devices));
+            $this->ReloadForm();
         } catch (Exception $e) {
             echo $this->Translate('Error') . ': ' . $e->getMessage();
         }
