@@ -53,10 +53,10 @@ class MELCloudKlimageraet extends IPSModuleStrict
             $this->EnableAction($ident);
         }
 
-        // Nur Daten des eigenen Geräts empfangen
+        // Filter auf DataID – UnitID-Prüfung erfolgt in ReceiveData
         $unitID = $this->ReadPropertyString('UnitID');
         if ($unitID !== '') {
-            $this->SetReceiveDataFilter('.*"UnitID":"' . preg_quote($unitID, '/') . '".*');
+            $this->SetReceiveDataFilter('.*2FD07B1C-5822-48B2-B394-0000776DF537.*');
             $this->SetStatus(102);
         } else {
             $this->SetReceiveDataFilter('(?!)'); // nichts empfangen, solange unkonfiguriert

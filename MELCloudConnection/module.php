@@ -102,8 +102,17 @@ class MELCloudConnection extends IPSModuleStrict
             $this->SetStatus(102);
         }
 
-        $children = IPS_GetInstanceListByModuleID('{73860314-C683-4067-B8BC-00005121318D}');
-        $this->SendDebug('UpdateStatus', 'Sende an ' . count($devices) . ' Geräte, ' . count($children) . ' Kind-Instanzen vorhanden', 0);
+        $allInstances = IPS_GetInstanceListByModuleID('{73860314-C683-4067-B8BC-00005121318D}');
+        $connectedCount = 0;
+        foreach ($allInstances as $instID) {
+            $connID = IPS_GetInstance($instID)['ConnectionID'];
+            $isConnected = ($connID === $this->InstanceID);
+            if ($isConnected) {
+                $connectedCount++;
+            }
+            $this->SendDebug('UpdateStatus', 'Instanz #' . $instID . ' ConnectionID=' . $connID . ($isConnected ? ' [verbunden ✓]' : ' [NICHT verbunden, erwartet=' . $this->InstanceID . ']'), 0);
+        }
+        $this->SendDebug('UpdateStatus', 'Sende an ' . count($devices) . ' Cloud-Geräte, ' . $connectedCount . '/' . count($allInstances) . ' Klimageraet-Instanzen verbunden', 0);
         foreach ($devices as $device) {
             $uid = (string) $device['UnitID'];
             $payload = (string) json_encode([
