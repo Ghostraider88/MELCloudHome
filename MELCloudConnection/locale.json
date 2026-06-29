@@ -1,0 +1,33 @@
+{
+    "translations": {
+        "de": {
+            "E-Mail (MELCloud Home)": "E-Mail (MELCloud Home)",
+            "Passwort": "Passwort",
+            "Status-Aktualisierung (Sekunden)": "Status-Aktualisierung (Sekunden)",
+            "Energie-Aktualisierung (Minuten)": "Energie-Aktualisierung (Minuten)",
+            "Login testen": "Login testen",
+            "Klimageräte": "Klimageräte",
+            "Name": "Name",
+            "Geräte-ID": "Geräte-ID",
+            "Verbunden": "Verbunden",
+            "Zugangsdaten fehlen": "Zugangsdaten fehlen",
+            "Verbindungs-/Anmeldefehler": "Verbindungs-/Anmeldefehler",
+            "Login failed. Please check your credentials.": "Login fehlgeschlagen. Bitte Zugangsdaten prüfen.",
+            "Login successful. %d air conditioner(s) found.": "Login erfolgreich. %d Klimagerät(e) gefunden.",
+            "Error": "Fehler"
+        },
+        "en": {
+            "E-Mail (MELCloud Home)": "Email (MELCloud Home)",
+            "Passwort": "Password",
+            "Status-Aktualisierung (Sekunden)": "Status update (seconds)",
+            "Energie-Aktualisierung (Minuten)": "Energy update (minutes)",
+            "Login testen": "Test login",
+            "Klimageräte": "Air conditioners",
+            "Name": "Name",
+            "Geräte-ID": "Device ID",
+            "Verbunden": "Connected",
+            "Zugangsdaten fehlen": "Credentials missing",
+            "Verbindungs-/Anmeldefehler": "Connection/login error"
+        }
+    }
+}

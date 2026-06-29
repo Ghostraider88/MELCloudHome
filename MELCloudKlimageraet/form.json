@@ -1,0 +1,22 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "UnitID",
+            "caption": "Geräte-ID (MELCloud)"
+        }
+    ],
+    "actions": [],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Aktiv"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Geräte-ID fehlt – bitte über den Konfigurator anlegen"
+        }
+    ]
+}

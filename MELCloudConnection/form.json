@@ -1,0 +1,77 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "Email",
+            "caption": "E-Mail (MELCloud Home)"
+        },
+        {
+            "type": "PasswordTextBox",
+            "name": "Password",
+            "caption": "Passwort"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "UpdateInterval",
+            "caption": "Status-Aktualisierung (Sekunden)",
+            "minimum": 30,
+            "suffix": "s"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "EnergyInterval",
+            "caption": "Energie-Aktualisierung (Minuten)",
+            "minimum": 5,
+            "suffix": "min"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Login testen",
+            "onClick": "MELC_TestLogin($id);"
+        },
+        {
+            "type": "Configurator",
+            "name": "Configurator",
+            "caption": "Klimageräte",
+            "rowCount": 10,
+            "add": false,
+            "delete": true,
+            "sort": {
+                "column": "Name",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "auto"
+                },
+                {
+                    "caption": "Geräte-ID",
+                    "name": "UnitID",
+                    "width": "320px"
+                }
+            ],
+            "values": []
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Verbunden"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Zugangsdaten fehlen"
+        },
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "Verbindungs-/Anmeldefehler"
+        }
+    ]
+}
