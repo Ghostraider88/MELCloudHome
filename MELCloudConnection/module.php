@@ -697,13 +697,25 @@ class MELCloudConnection extends IPSModuleStrict
 
     private function extractCodeFromUrl(string $url): string
     {
-        $query = parse_url($url, PHP_URL_QUERY);
-        if ($query === null || $query === false) {
-            // custom scheme kann auch hinter '#' liegen
-            $query = parse_url($url, PHP_URL_FRAGMENT) ?: '';
+        // PHP parse_url() cannot handle custom schemes like melcloudhome://, use regex first
+        if (preg_match('/[?&]code=([^&\s#]+)/', $url, $m)) {
+            return urldecode($m[1]);
         }
-        parse_str((string) $query, $params);
-        return $params['code'] ?? '';
+        $query = parse_url($url, PHP_URL_QUERY);
+        if ($query !== null && $query !== false && $query !== '') {
+            parse_str($query, $params);
+            if (!empty($params['code'])) {
+                return $params['code'];
+            }
+        }
+        $fragment = parse_url($url, PHP_URL_FRAGMENT) ?: '';
+        if ($fragment !== '') {
+            parse_str($fragment, $params);
+            if (!empty($params['code'])) {
+                return $params['code'];
+            }
+        }
+        return '';
     }
 
     private function extractCodeFromHtml(string $html): string
