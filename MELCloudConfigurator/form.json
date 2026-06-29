@@ -1,0 +1,42 @@
+{
+    "elements": [],
+    "actions": [
+        {
+            "type": "Configurator",
+            "name": "Configurator",
+            "caption": "Klimageräte",
+            "rowCount": 10,
+            "add": false,
+            "delete": true,
+            "sort": {
+                "column": "Name",
+                "direction": "ascending"
+            },
+            "columns": [
+                {
+                    "caption": "Name",
+                    "name": "Name",
+                    "width": "auto"
+                },
+                {
+                    "caption": "Geräte-ID",
+                    "name": "UnitID",
+                    "width": "320px"
+                }
+            ],
+            "values": []
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Verbunden"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Keine Verbindung zum Splitter"
+        }
+    ]
+}

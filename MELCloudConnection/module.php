@@ -78,6 +78,7 @@ class MELCloudConnection extends IPSModuleStrict
             $context = $this->fetchContext();
             $devices = $this->extractDevices($context);
             echo sprintf($this->Translate('Login successful. %d air conditioner(s) found.'), count($devices));
+            $this->ReloadForm();
         } catch (Exception $e) {
             echo $this->Translate('Error') . ': ' . $e->getMessage();
         }
@@ -101,11 +102,26 @@ class MELCloudConnection extends IPSModuleStrict
             $this->SetStatus(102);
         }
 
+        $allInstances = IPS_GetInstanceListByModuleID('{73860314-C683-4067-B8BC-00005121318D}');
+        $connectedCount = 0;
+        foreach ($allInstances as $instID) {
+            $connID = IPS_GetInstance($instID)['ConnectionID'];
+            $isConnected = ($connID === $this->InstanceID);
+            if ($isConnected) {
+                $connectedCount++;
+            }
+            $this->SendDebug('UpdateStatus', 'Instanz #' . $instID . ' ConnectionID=' . $connID . ($isConnected ? ' [verbunden ✓]' : ' [NICHT verbunden, erwartet=' . $this->InstanceID . ']'), 0);
+        }
+        $this->SendDebug('UpdateStatus', 'Sende an ' . count($devices) . ' Cloud-Geräte, ' . $connectedCount . '/' . count($allInstances) . ' Klimageraet-Instanzen verbunden', 0);
         foreach ($devices as $device) {
-            $this->SendDataToChildren((string) json_encode([
-                'DataID' => self::TX_TO_CHILD,
-                'Buffer' => bin2hex((string) json_encode($device))
-            ]));
+            $uid = (string) $device['UnitID'];
+            $payload = (string) json_encode([
+                'DataID'  => self::TX_TO_CHILD,
+                'UnitID'  => $uid,
+                'Buffer'  => bin2hex((string) json_encode($device))
+            ]);
+            $this->SendDebug('UpdateStatus', 'SendDataToChildren UnitID=' . $uid, 0);
+            $this->SendDataToChildren($payload);
         }
     }
 
@@ -122,8 +138,9 @@ class MELCloudConnection extends IPSModuleStrict
                 continue;
             }
             $this->SendDataToChildren((string) json_encode([
-                'DataID' => self::TX_TO_CHILD,
-                'Buffer' => bin2hex((string) json_encode([
+                'DataID'  => self::TX_TO_CHILD,
+                'UnitID'  => $unitID,
+                'Buffer'  => bin2hex((string) json_encode([
                     'UnitID'         => $unitID,
                     'EnergyConsumed' => $energy
                 ]))
@@ -155,57 +172,22 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /* -------------------------------------------------------------------------
-     * Konfigurationsformular inkl. Konfigurator-Liste
+     * Exportierte Funktion für den Konfigurator
      * ---------------------------------------------------------------------- */
 
-    public function GetConfigurationForm(): string
+    /**
+     * Liefert die Geräteliste als JSON-String an den MELCloud Configurator.
+     */
+    public function GetDeviceListJSON(): string
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-
-        $values = [];
         try {
-            if ($this->ReadPropertyString('Email') !== '' && $this->ReadPropertyString('Password') !== '') {
-                $context = $this->fetchContext();
-                $values  = $this->buildConfiguratorValues($this->extractDevices($context));
-            }
+            $context = $this->fetchContext();
+            $devices = $this->extractDevices($context);
+            return (string) json_encode($devices);
         } catch (Exception $e) {
             $this->SendDebug(__FUNCTION__, $e->getMessage(), 0);
+            return '[]';
         }
-
-        foreach ($form['actions'] as &$action) {
-            if (isset($action['name']) && $action['name'] === 'Configurator') {
-                $action['values'] = $values;
-            }
-        }
-        unset($action);
-
-        return (string) json_encode($form);
-    }
-
-    private function buildConfiguratorValues(array $devices): array
-    {
-        $deviceModuleID = '{73860314-C683-4067-B8BC-00005121318D}';
-        $existing       = $this->getExistingDeviceInstances($deviceModuleID);
-
-        $values = [];
-        foreach ($devices as $device) {
-            $unitID     = (string) $device['UnitID'];
-            $instanceID = $existing[$unitID] ?? 0;
-
-            $values[] = [
-                'instanceID' => $instanceID,
-                'UnitID'     => $unitID,
-                'Name'       => $device['Name'] ?? $unitID,
-                'create'     => [
-                    'moduleID'      => $deviceModuleID,
-                    'configuration' => [
-                        'UnitID' => $unitID
-                    ]
-                ]
-            ];
-        }
-
-        return $values;
     }
 
     /**
@@ -244,74 +226,69 @@ class MELCloudConnection extends IPSModuleStrict
     private function fetchContext(): array
     {
         $response = $this->apiRequest('GET', '/context');
-        $data     = json_decode($response, true);
+        $this->SendDebug('fetchContext', 'Rohe Antwort (1500 Zeichen): ' . substr($response, 0, 1500), 0);
+        $data = json_decode($response, true);
         if (!is_array($data)) {
             throw new Exception('Ungültige /context-Antwort');
         }
+        $this->SendDebug('fetchContext', 'Top-Level-Keys: ' . implode(', ', array_keys($data)), 0);
         return $data;
     }
 
     /**
-     * Extrahiert die ATA-Klimageräte aus der /context-Antwort in ein normalisiertes Format.
+     * Extrahiert die ATA-Klimageräte aus der /context-Antwort.
      *
-     * Die Cloud liefert Gebäude (buildings) mit Geräten. Die genaue Verschachtelung
-     * kann variieren; daher wird rekursiv nach Geräten mit ATA-typischen Feldern gesucht.
+     * Struktur: context.buildings[*].airToAirUnits[*]
+     * Status-Felder stehen im settings-Array als {name, value}-Paare.
      *
      * @return array<int,array<string,mixed>>
      */
     private function extractDevices(array $context): array
     {
         $devices = [];
-        $this->collectAtaDevices($context, $devices);
+        foreach ($context['buildings'] ?? [] as $building) {
+            foreach ($building['airToAirUnits'] ?? [] as $unit) {
+                $normalized = $this->normalizeUnit($unit);
+                if ($normalized !== null) {
+                    $devices[] = $normalized;
+                }
+            }
+        }
+        $this->SendDebug('extractDevices', count($devices) . ' Geräte gefunden', 0);
         return $devices;
     }
 
-    private function collectAtaDevices($node, array &$devices): void
+    private function normalizeUnit(array $unit): ?array
     {
-        if (!is_array($node)) {
-            return;
-        }
-
-        // Ein ATA-Gerät erkennen wir an typischen Feldern
-        $isDevice = $this->hasAnyKey($node, ['Power', 'power']) &&
-                    $this->hasAnyKey($node, ['OperationMode', 'operationMode', 'SetTemperature', 'setTemperature']);
-
-        if ($isDevice) {
-            $normalized = $this->normalizeDevice($node);
-            if ($normalized !== null) {
-                $devices[] = $normalized;
-                return;
-            }
-        }
-
-        foreach ($node as $value) {
-            if (is_array($value)) {
-                $this->collectAtaDevices($value, $devices);
-            }
-        }
-    }
-
-    private function normalizeDevice(array $raw): ?array
-    {
-        $unitID = $this->pick($raw, ['unitId', 'unitID', 'id', 'deviceId', 'DeviceID']);
+        $unitID = $unit['id'] ?? null;
         if ($unitID === null) {
             return null;
         }
 
+        // settings ist ein [{name, value}]-Array → in eine Map umwandeln
+        $settings = [];
+        foreach ($unit['settings'] ?? [] as $s) {
+            if (isset($s['name'])) {
+                $settings[$s['name']] = $s['value'] ?? null;
+            }
+        }
+
+        $power = isset($settings['Power']) ? strtolower((string) $settings['Power']) !== 'false' : false;
+
         return [
             'UnitID'                  => (string) $unitID,
-            'Name'                    => $this->pick($raw, ['givenDisplayName', 'displayName', 'name', 'Name']) ?? (string) $unitID,
-            'Power'                   => (bool) $this->pick($raw, ['Power', 'power']),
-            'OperationMode'           => $this->pick($raw, ['OperationMode', 'operationMode']),
-            'SetTemperature'          => $this->pick($raw, ['SetTemperature', 'setTemperature']),
-            'RoomTemperature'         => $this->pick($raw, ['RoomTemperature', 'roomTemperature']),
-            'SetFanSpeed'             => $this->pick($raw, ['SetFanSpeed', 'setFanSpeed']),
-            'VaneVerticalDirection'   => $this->pick($raw, ['VaneVerticalDirection', 'vaneVerticalDirection']),
-            'VaneHorizontalDirection' => $this->pick($raw, ['VaneHorizontalDirection', 'vaneHorizontalDirection']),
-            'InStandbyMode'           => (bool) $this->pick($raw, ['InStandbyMode', 'inStandbyMode']),
-            'IsInError'               => (bool) $this->pick($raw, ['IsInError', 'isInError']),
-            'rssi'                    => $this->pick($raw, ['rssi', 'Rssi', 'RSSI']),
-            'Connected'               => $this->pick($raw, ['rssi', 'Rssi', 'RSSI']) !== null
+            'Name'                    => $unit['givenDisplayName'] ?? $unit['displayName'] ?? (string) $unitID,
+            'Power'                   => $power,
+            'OperationMode'           => $settings['OperationMode'] ?? null,
+            'SetTemperature'          => isset($settings['SetTemperature']) ? (float) $settings['SetTemperature'] : null,
+            'RoomTemperature'         => isset($settings['RoomTemperature']) ? (float) $settings['RoomTemperature'] : null,
+            'SetFanSpeed'             => $settings['SetFanSpeed'] ?? $settings['ActualFanSpeed'] ?? null,
+            'VaneVerticalDirection'   => $settings['VaneVerticalDirection'] ?? null,
+            'VaneHorizontalDirection' => $settings['VaneHorizontalDirection'] ?? null,
+            'InStandbyMode'           => isset($settings['InStandbyMode']) && strtolower((string) $settings['InStandbyMode']) !== 'false',
+            'IsInError'               => isset($settings['IsInError']) && strtolower((string) $settings['IsInError']) !== 'false',
+            'rssi'                    => isset($settings['rssi']) ? (int) $settings['rssi'] : null,
+            'Connected'               => true
         ];
     }
 
@@ -468,9 +445,6 @@ class MELCloudConnection extends IPSModuleStrict
         return isset($tokens['access_token']) ? $tokens : null;
     }
 
-    /**
-     * Vollständiger PKCE-Login mit Cognito-Federated-Login.
-     */
     private function login(): ?array
     {
         $email    = $this->ReadPropertyString('Email');
@@ -480,14 +454,15 @@ class MELCloudConnection extends IPSModuleStrict
         }
 
         $cookieJar = tempnam(sys_get_temp_dir(), 'melc_');
+        $this->SendDebug('login', 'Start – E-Mail: ' . $email, 0);
 
         try {
-            // PKCE-Parameter
+            // Schritt 1: PAR
             $codeVerifier  = $this->base64Url(random_bytes(48));
             $codeChallenge = $this->base64Url(hash('sha256', $codeVerifier, true));
             $state         = $this->base64Url(random_bytes(16));
 
-            // Schritt 1: Pushed Authorization Request (PAR)
+            $this->SendDebug('login/1-PAR', 'POST ' . self::AUTH_BASE_URL . '/connect/par', 0);
             [$status, $response] = $this->httpRequest(
                 'POST',
                 self::AUTH_BASE_URL . '/connect/par',
@@ -503,34 +478,48 @@ class MELCloudConnection extends IPSModuleStrict
                 ]),
                 $cookieJar
             );
+            $this->SendDebug('login/1-PAR', 'HTTP ' . $status . ' – Body: ' . substr($response, 0, 300), 0);
             if ($status !== 201 && $status !== 200) {
                 throw new Exception('PAR fehlgeschlagen: HTTP ' . $status);
             }
             $par = json_decode($response, true);
             if (!isset($par['request_uri'])) {
-                throw new Exception('PAR ohne request_uri');
+                throw new Exception('PAR ohne request_uri – Antwort: ' . substr($response, 0, 200));
             }
+            $this->SendDebug('login/1-PAR', 'request_uri: ' . $par['request_uri'], 0);
 
-            // Schritt 2: Authorize -> Redirect zur Cognito-Loginseite
+            // Schritt 2: Authorize → Loginseite
             $authorizeUrl = self::AUTH_BASE_URL . '/connect/authorize?' . http_build_query([
                 'client_id'   => self::OAUTH_CLIENT_ID,
                 'request_uri' => $par['request_uri']
             ]);
+            $this->SendDebug('login/2-Authorize', 'URL: ' . $authorizeUrl, 0);
             $loginPage = $this->followToLoginPage($authorizeUrl, $cookieJar, $loginUrl);
+            $this->SendDebug('login/2-Authorize', 'Finale Login-URL: ' . $loginUrl, 0);
+            $this->SendDebug('login/2-Authorize', 'Seiteninhalt (500 Zeichen): ' . substr(strip_tags($loginPage), 0, 500), 0);
             if ($loginUrl === '') {
-                throw new Exception('Cognito-Loginseite nicht erreicht');
+                throw new Exception('Cognito-Loginseite nicht erreicht – Seiteninhalt: ' . substr($loginPage, 0, 300));
             }
 
-            // Schritt 3: CSRF-Token aus der Loginseite extrahieren
+            // Schritt 3: CSRF
             $csrf = $this->extractCsrf($loginPage);
+            $this->SendDebug('login/3-CSRF', $csrf !== '' ? 'Gefunden: ' . substr($csrf, 0, 20) . '…' : 'NICHT gefunden – möglicherweise anderes CSRF-Feld', 0);
+            if ($csrf === '') {
+                // Alle input-Felder im HTML loggen für Diagnose
+                preg_match_all('/<input[^>]+>/i', $loginPage, $inputs);
+                $this->SendDebug('login/3-CSRF', 'HTML-input-Felder: ' . implode(' | ', array_map(fn($t) => strip_tags('<x ' . $t . '>'), array_slice($inputs[0], 0, 20))), 0);
+            }
 
-            // Schritt 4: Zugangsdaten an Cognito senden -> Auth-Code abfangen
+            // Schritt 4: Zugangsdaten senden
+            $this->SendDebug('login/4-Submit', 'POST an: ' . $loginUrl . ' (CSRF: ' . ($csrf !== '' ? 'ja' : 'nein') . ')', 0);
             $code = $this->submitCredentials($loginUrl, $csrf, $email, $password, $cookieJar);
+            $this->SendDebug('login/4-Submit', $code !== '' ? 'Auth-Code erhalten (Länge ' . strlen($code) . ')' : 'KEIN Auth-Code erhalten', 0);
             if ($code === '') {
                 throw new Exception('Kein Auth-Code erhalten (Zugangsdaten prüfen)');
             }
 
             // Schritt 5: Token-Tausch
+            $this->SendDebug('login/5-Token', 'POST ' . self::AUTH_BASE_URL . '/connect/token', 0);
             [$status, $response] = $this->httpRequest(
                 'POST',
                 self::AUTH_BASE_URL . '/connect/token',
@@ -544,13 +533,18 @@ class MELCloudConnection extends IPSModuleStrict
                 ]),
                 $cookieJar
             );
+            $this->SendDebug('login/5-Token', 'HTTP ' . $status . ' – Body: ' . substr($response, 0, 200), 0);
             if ($status !== 200) {
-                throw new Exception('Token-Tausch fehlgeschlagen: HTTP ' . $status);
+                throw new Exception('Token-Tausch fehlgeschlagen: HTTP ' . $status . ' – ' . substr($response, 0, 200));
             }
             $tokens = json_decode($response, true);
-            return isset($tokens['access_token']) ? $tokens : null;
+            if (!isset($tokens['access_token'])) {
+                throw new Exception('Kein access_token in Antwort: ' . substr($response, 0, 200));
+            }
+            $this->SendDebug('login/5-Token', 'Erfolgreich – Token-Typ: ' . ($tokens['token_type'] ?? '?') . ', gültig: ' . ($tokens['expires_in'] ?? '?') . 's', 0);
+            return $tokens;
         } catch (Exception $e) {
-            $this->SendDebug('login', $e->getMessage(), 0);
+            $this->SendDebug('login', 'FEHLER: ' . $e->getMessage(), 0);
             $this->LogMessage('MELCloud-Login fehlgeschlagen: ' . $e->getMessage(), KL_ERROR);
             return null;
         } finally {
@@ -560,19 +554,17 @@ class MELCloudConnection extends IPSModuleStrict
         }
     }
 
-    /**
-     * Folgt der Authorize-Weiterleitung bis zur (HTML-)Loginseite und gibt deren
-     * Inhalt sowie per Referenz die finale URL zurück.
-     */
     private function followToLoginPage(string $url, string $cookieJar, ?string &$finalUrl = null): string
     {
         $finalUrl = '';
         for ($hop = 0; $hop < 10; $hop++) {
+            $this->SendDebug('followToLoginPage', 'Hop ' . $hop . ': GET ' . $url, 0);
             [$status, $body, $location, $effectiveUrl] = $this->httpRequestRaw('GET', $url, ['User-Agent: ' . self::USER_AGENT], null, $cookieJar);
+            $this->SendDebug('followToLoginPage', 'Hop ' . $hop . ': HTTP ' . $status . ' – Location: ' . ($location ?: '(keine)') . ' – Body: ' . strlen($body) . ' Bytes', 0);
 
             if ($location !== '') {
-                // Auth-Code könnte schon hier zurückkommen (bestehende Session)
                 if (strpos($location, self::OAUTH_REDIRECT) === 0) {
+                    $this->SendDebug('followToLoginPage', 'Sofort-Redirect mit Auth-Code erkannt', 0);
                     $finalUrl = $location;
                     return $body;
                 }
@@ -580,10 +572,10 @@ class MELCloudConnection extends IPSModuleStrict
                 continue;
             }
 
-            // Keine Weiterleitung mehr -> das ist die Loginseite
             $finalUrl = $effectiveUrl !== '' ? $effectiveUrl : $url;
             return $body;
         }
+        $this->SendDebug('followToLoginPage', 'Zu viele Weiterleitungen (>10)', 0);
         return '';
     }
 
@@ -595,13 +587,13 @@ class MELCloudConnection extends IPSModuleStrict
         if (preg_match('/name="csrf[-_]?token"\s+value="([^"]+)"/i', $html, $m)) {
             return $m[1];
         }
+        // Weitere bekannte Varianten
+        if (preg_match('/["\']csrf["\']\s*:\s*["\']([^"\']+)["\']/', $html, $m)) {
+            return $m[1];
+        }
         return '';
     }
 
-    /**
-     * Sendet die Zugangsdaten an die Cognito-Loginseite und verfolgt die
-     * Weiterleitungskette bis zum custom-scheme-Redirect mit dem Auth-Code.
-     */
     private function submitCredentials(string $loginUrl, string $csrf, string $email, string $password, string $cookieJar): string
     {
         $postFields = http_build_query([
@@ -621,10 +613,13 @@ class MELCloudConnection extends IPSModuleStrict
                 $headers[] = 'Content-Type: application/x-www-form-urlencoded';
             }
 
+            $this->SendDebug('submitCredentials', 'Hop ' . $hop . ': ' . $method . ' ' . $url, 0);
             [$status, $body, $location] = $this->httpRequestRaw($method, $url, $headers, $data, $cookieJar);
+            $this->SendDebug('submitCredentials', 'Hop ' . $hop . ': HTTP ' . $status . ' – Location: ' . ($location ?: '(keine)') . ' – Body: ' . strlen($body) . ' Bytes', 0);
 
             if ($location !== '') {
                 if (strpos($location, self::OAUTH_REDIRECT) === 0) {
+                    $this->SendDebug('submitCredentials', 'Redirect-URL mit Auth-Code: ' . substr($location, 0, 120), 0);
                     return $this->extractCodeFromUrl($location);
                 }
                 $url    = $this->resolveUrl($url, $location);
@@ -633,25 +628,71 @@ class MELCloudConnection extends IPSModuleStrict
                 continue;
             }
 
-            // Manche Auth-Code-Übergaben erfolgen über ein Auto-Submit-Formular
+            // Kein Redirect – Body auf Code/Fehler prüfen
+            $this->SendDebug('submitCredentials', 'Kein Redirect – Body (400 Zeichen): ' . substr(strip_tags($body), 0, 400), 0);
             $code = $this->extractCodeFromHtml($body);
             if ($code !== '') {
+                $this->SendDebug('submitCredentials', 'Auth-Code aus HTML-Body extrahiert', 0);
                 return $code;
             }
+
+            // JavaScript-Redirect-Seite: RedirectUri aus aktuellem URL-Parameter auslesen
+            $nextUrl = $this->extractJsRedirect($body, $url);
+            if ($nextUrl !== '') {
+                $this->SendDebug('submitCredentials', 'JS-Redirect folgen: ' . substr($nextUrl, 0, 150), 0);
+                $url    = $nextUrl;
+                $method = 'GET';
+                $data   = null;
+                continue;
+            }
+
             break;
+        }
+        return '';
+    }
+
+    private function extractJsRedirect(string $body, string $currentUrl): string
+    {
+        // window.location / window.location.href = "..."
+        if (preg_match('/window\.location(?:\.href)?\s*=\s*["\']([^"\']{5,})["\']/', $body, $m)) {
+            return $this->resolveUrl($currentUrl, $m[1]);
+        }
+        // <meta http-equiv="refresh" content="0; url=...">
+        if (preg_match('/<meta[^>]+http-equiv=["\']refresh["\'][^>]+content=["\'][^;]+;\s*url=([^"\'>\s]+)/i', $body, $m)) {
+            return $this->resolveUrl($currentUrl, html_entity_decode($m[1]));
+        }
+        // RedirectUri=... Parameter aus der aktuellen URL
+        $query = parse_url($currentUrl, PHP_URL_QUERY) ?? '';
+        if ($query !== '') {
+            parse_str($query, $params);
+            if (!empty($params['RedirectUri'])) {
+                return $this->resolveUrl($currentUrl, $params['RedirectUri']);
+            }
         }
         return '';
     }
 
     private function extractCodeFromUrl(string $url): string
     {
-        $query = parse_url($url, PHP_URL_QUERY);
-        if ($query === null || $query === false) {
-            // custom scheme kann auch hinter '#' liegen
-            $query = parse_url($url, PHP_URL_FRAGMENT) ?: '';
+        // PHP parse_url() cannot handle custom schemes like melcloudhome://, use regex first
+        if (preg_match('/[?&]code=([^&\s#]+)/', $url, $m)) {
+            return urldecode($m[1]);
         }
-        parse_str((string) $query, $params);
-        return $params['code'] ?? '';
+        $query = parse_url($url, PHP_URL_QUERY);
+        if ($query !== null && $query !== false && $query !== '') {
+            parse_str($query, $params);
+            if (!empty($params['code'])) {
+                return $params['code'];
+            }
+        }
+        $fragment = parse_url($url, PHP_URL_FRAGMENT) ?: '';
+        if ($fragment !== '') {
+            parse_str($fragment, $params);
+            if (!empty($params['code'])) {
+                return $params['code'];
+            }
+        }
+        return '';
     }
 
     private function extractCodeFromHtml(string $html): string

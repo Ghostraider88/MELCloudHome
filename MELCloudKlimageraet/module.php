@@ -11,8 +11,7 @@ declare(strict_types=1);
  */
 class MELCloudKlimageraet extends IPSModuleStrict
 {
-    private const RX_TO_PARENT      = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
-    private const CONNECTION_MODULE = '{5544D6EC-888E-48C1-AB58-0000739AFC1E}';
+    private const RX_TO_PARENT = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
 
     // int <-> API-String Zuordnungen
     private const MODE_MAP   = [0 => 'Automatic', 1 => 'Heat', 2 => 'Cool', 3 => 'Dry', 4 => 'Fan'];
@@ -25,8 +24,6 @@ class MELCloudKlimageraet extends IPSModuleStrict
         parent::Create();
 
         $this->RegisterPropertyString('UnitID', '');
-
-        $this->ConnectParent(self::CONNECTION_MODULE);
     }
 
     public function ApplyChanges(): void
@@ -46,7 +43,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         // Reine Anzeige-Variablen
         $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, '~Temperature', 7, true);
         $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_INTEGER, 'MELCloud.Status', 8, true);
-        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Connect', 9, true);
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Switch', 9, true);
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, '~Alert', 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
@@ -56,10 +53,10 @@ class MELCloudKlimageraet extends IPSModuleStrict
             $this->EnableAction($ident);
         }
 
-        // Nur Daten des eigenen Geräts empfangen
+        // Filter auf DataID – UnitID-Prüfung erfolgt in ReceiveData
         $unitID = $this->ReadPropertyString('UnitID');
         if ($unitID !== '') {
-            $this->SetReceiveDataFilter('.*"UnitID":"' . preg_quote($unitID, '/') . '".*');
+            $this->SetReceiveDataFilter('.*2FD07B1C-5822-48B2-B394-0000776DF537.*');
             $this->SetStatus(102);
         } else {
             $this->SetReceiveDataFilter('(?!)'); // nichts empfangen, solange unkonfiguriert
@@ -73,16 +70,21 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $this->SendDebug('ReceiveData', 'Empfangen (100 Zeichen): ' . substr($JSONString, 0, 100), 0);
         $outer = json_decode($JSONString, true);
         if (!isset($outer['Buffer']) || !is_string($outer['Buffer'])) {
+            $this->SendDebug('ReceiveData', 'Kein Buffer in Daten', 0);
             return '';
         }
         $buffer = json_decode(hex2bin($outer['Buffer']), true);
         if (!is_array($buffer)) {
+            $this->SendDebug('ReceiveData', 'Buffer konnte nicht dekodiert werden', 0);
             return '';
         }
-
-        if (($buffer['UnitID'] ?? null) !== $this->ReadPropertyString('UnitID')) {
+        $myID = $this->ReadPropertyString('UnitID');
+        $bufID = (string) ($buffer['UnitID'] ?? '');
+        $this->SendDebug('ReceiveData', 'Buffer-UnitID=' . $bufID . ' eigene=' . $myID, 0);
+        if ($bufID !== $myID) {
             return '';
         }
 
