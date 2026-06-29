@@ -102,12 +102,17 @@ class MELCloudConnection extends IPSModuleStrict
             $this->SetStatus(102);
         }
 
+        $children = IPS_GetInstanceListByModuleID('{73860314-C683-4067-B8BC-00005121318D}');
+        $this->SendDebug('UpdateStatus', 'Sende an ' . count($devices) . ' Geräte, ' . count($children) . ' Kind-Instanzen vorhanden', 0);
         foreach ($devices as $device) {
-            $this->SendDataToChildren((string) json_encode([
+            $uid = (string) $device['UnitID'];
+            $payload = (string) json_encode([
                 'DataID'  => self::TX_TO_CHILD,
-                'UnitID'  => (string) $device['UnitID'],
+                'UnitID'  => $uid,
                 'Buffer'  => bin2hex((string) json_encode($device))
-            ]));
+            ]);
+            $this->SendDebug('UpdateStatus', 'SendDataToChildren UnitID=' . $uid, 0);
+            $this->SendDataToChildren($payload);
         }
     }
 

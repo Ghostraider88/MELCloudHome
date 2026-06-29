@@ -70,16 +70,21 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     public function ReceiveData(string $JSONString): string
     {
+        $this->SendDebug('ReceiveData', 'Empfangen (100 Zeichen): ' . substr($JSONString, 0, 100), 0);
         $outer = json_decode($JSONString, true);
         if (!isset($outer['Buffer']) || !is_string($outer['Buffer'])) {
+            $this->SendDebug('ReceiveData', 'Kein Buffer in Daten', 0);
             return '';
         }
         $buffer = json_decode(hex2bin($outer['Buffer']), true);
         if (!is_array($buffer)) {
+            $this->SendDebug('ReceiveData', 'Buffer konnte nicht dekodiert werden', 0);
             return '';
         }
-
-        if (($buffer['UnitID'] ?? null) !== $this->ReadPropertyString('UnitID')) {
+        $myID = $this->ReadPropertyString('UnitID');
+        $bufID = (string) ($buffer['UnitID'] ?? '');
+        $this->SendDebug('ReceiveData', 'Buffer-UnitID=' . $bufID . ' eigene=' . $myID, 0);
+        if ($bufID !== $myID) {
             return '';
         }
 
