@@ -104,8 +104,9 @@ class MELCloudConnection extends IPSModuleStrict
 
         foreach ($devices as $device) {
             $this->SendDataToChildren((string) json_encode([
-                'DataID' => self::TX_TO_CHILD,
-                'Buffer' => bin2hex((string) json_encode($device))
+                'DataID'  => self::TX_TO_CHILD,
+                'UnitID'  => (string) $device['UnitID'],
+                'Buffer'  => bin2hex((string) json_encode($device))
             ]));
         }
     }
@@ -123,8 +124,9 @@ class MELCloudConnection extends IPSModuleStrict
                 continue;
             }
             $this->SendDataToChildren((string) json_encode([
-                'DataID' => self::TX_TO_CHILD,
-                'Buffer' => bin2hex((string) json_encode([
+                'DataID'  => self::TX_TO_CHILD,
+                'UnitID'  => $unitID,
+                'Buffer'  => bin2hex((string) json_encode([
                     'UnitID'         => $unitID,
                     'EnergyConsumed' => $energy
                 ]))
