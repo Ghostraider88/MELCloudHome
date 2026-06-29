@@ -2,10 +2,11 @@
     "id": "{4A5EAAC8-ACB1-4B3C-92CA-000051102F8D}",
     "name": "MELCloud Home Klima",
     "author": "Torsten Wolf",
-    "url": "https://github.com/ghostraider88/melcloudhome",
+    "url": "https://github.com/ghostraider88/MELCloudHome",
     "version": "1.0",
-    "build": 1,
+    "build": 2,
+    "date": 1782691200,
     "compatibility": {
-        "version": "7.0"
+        "version": "8.1"
     }
 }
