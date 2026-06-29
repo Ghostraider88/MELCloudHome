@@ -1,0 +1,44 @@
+{
+    "translations": {
+        "de": {
+            "Geräte-ID (MELCloud)": "Geräte-ID (MELCloud)",
+            "Aktiv": "Aktiv",
+            "Geräte-ID fehlt – bitte über den Konfigurator anlegen": "Geräte-ID fehlt – bitte über den Konfigurator anlegen",
+            "Power": "Ein/Aus",
+            "Mode": "Betriebsmodus",
+            "Target temperature": "Solltemperatur",
+            "Fan speed": "Lüftergeschwindigkeit",
+            "Vane vertical": "Lamelle vertikal",
+            "Vane horizontal": "Lamelle horizontal",
+            "Room temperature": "Raumtemperatur",
+            "Operating status": "Betriebsstatus",
+            "Connected": "Verbunden",
+            "Error": "Störung",
+            "WiFi signal": "WLAN-Signal",
+            "Energy consumed": "Energieverbrauch",
+            "Device is not configured.": "Gerät ist nicht konfiguriert.",
+            "Automatic": "Automatik",
+            "Heat": "Heizen",
+            "Cool": "Kühlen",
+            "Dry": "Entfeuchten",
+            "Fan": "Lüften",
+            "Swing": "Schwenken",
+            "Left": "Links",
+            "Left-Centre": "Links-Mitte",
+            "Centre": "Mitte",
+            "Right-Centre": "Rechts-Mitte",
+            "Right": "Rechts",
+            "Off": "Aus",
+            "Idle": "Leerlauf",
+            "Heating": "Heizen",
+            "Cooling": "Kühlen",
+            "Drying": "Entfeuchten",
+            "Ventilating": "Lüften"
+        },
+        "en": {
+            "Geräte-ID (MELCloud)": "Device ID (MELCloud)",
+            "Aktiv": "Active",
+            "Geräte-ID fehlt – bitte über den Konfigurator anlegen": "Device ID missing – please add via the configurator"
+        }
+    }
+}

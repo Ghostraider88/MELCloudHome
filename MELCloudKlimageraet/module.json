@@ -1,0 +1,19 @@
+{
+    "id": "{73860314-C683-4067-B8BC-00005121318D}",
+    "name": "MELCloud Klimageraet",
+    "type": 3,
+    "vendor": "Mitsubishi Electric",
+    "aliases": [
+        "MELCloud Klimagerät",
+        "MELCloud Klima",
+        "Mitsubishi Klima"
+    ],
+    "parentRequirements": [
+        "{7D0C324F-EF82-4716-A8A0-00006378D27F}"
+    ],
+    "childRequirements": [],
+    "implemented": [
+        "{2FD07B1C-5822-48B2-B394-0000776DF537}"
+    ],
+    "prefix": "MELA"
+}
