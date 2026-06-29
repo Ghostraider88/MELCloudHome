@@ -198,9 +198,12 @@ class MELCloudConnection extends IPSModuleStrict
                 'UnitID'     => $unitID,
                 'Name'       => $device['Name'] ?? $unitID,
                 'create'     => [
-                    'moduleID'      => $deviceModuleID,
-                    'configuration' => [
-                        'UnitID' => $unitID
+                    [
+                        'moduleID'      => $deviceModuleID,
+                        'name'          => $device['Name'] ?? $unitID,
+                        'configuration' => [
+                            'UnitID' => $unitID
+                        ]
                     ]
                 ]
             ];
