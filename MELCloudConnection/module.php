@@ -658,7 +658,39 @@ class MELCloudConnection extends IPSModuleStrict
                 $this->SendDebug('submitCredentials', 'Auth-Code aus HTML-Body extrahiert', 0);
                 return $code;
             }
+
+            // JavaScript-Redirect-Seite: RedirectUri aus aktuellem URL-Parameter auslesen
+            $nextUrl = $this->extractJsRedirect($body, $url);
+            if ($nextUrl !== '') {
+                $this->SendDebug('submitCredentials', 'JS-Redirect folgen: ' . substr($nextUrl, 0, 150), 0);
+                $url    = $nextUrl;
+                $method = 'GET';
+                $data   = null;
+                continue;
+            }
+
             break;
+        }
+        return '';
+    }
+
+    private function extractJsRedirect(string $body, string $currentUrl): string
+    {
+        // window.location / window.location.href = "..."
+        if (preg_match('/window\.location(?:\.href)?\s*=\s*["\']([^"\']{5,})["\']/', $body, $m)) {
+            return $this->resolveUrl($currentUrl, $m[1]);
+        }
+        // <meta http-equiv="refresh" content="0; url=...">
+        if (preg_match('/<meta[^>]+http-equiv=["\']refresh["\'][^>]+content=["\'][^;]+;\s*url=([^"\'>\s]+)/i', $body, $m)) {
+            return $this->resolveUrl($currentUrl, html_entity_decode($m[1]));
+        }
+        // RedirectUri=... Parameter aus der aktuellen URL
+        $query = parse_url($currentUrl, PHP_URL_QUERY) ?? '';
+        if ($query !== '') {
+            parse_str($query, $params);
+            if (!empty($params['RedirectUri'])) {
+                return $this->resolveUrl($currentUrl, $params['RedirectUri']);
+            }
         }
         return '';
     }
