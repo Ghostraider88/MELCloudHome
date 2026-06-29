@@ -11,8 +11,7 @@ declare(strict_types=1);
  */
 class MELCloudKlimageraet extends IPSModuleStrict
 {
-    private const RX_TO_PARENT      = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
-    private const CONNECTION_MODULE = '{5544D6EC-888E-48C1-AB58-0000739AFC1E}';
+    private const RX_TO_PARENT = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
 
     // int <-> API-String Zuordnungen
     private const MODE_MAP   = [0 => 'Automatic', 1 => 'Heat', 2 => 'Cool', 3 => 'Dry', 4 => 'Fan'];
@@ -25,8 +24,6 @@ class MELCloudKlimageraet extends IPSModuleStrict
         parent::Create();
 
         $this->RegisterPropertyString('UnitID', '');
-
-        $this->ConnectParent(self::CONNECTION_MODULE);
     }
 
     public function ApplyChanges(): void
