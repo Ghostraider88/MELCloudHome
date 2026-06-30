@@ -30,19 +30,20 @@ class MELCloudKlimageraet extends IPSModuleStrict
     {
         parent::ApplyChanges();
 
-        $this->createProfiles();
-
         // Steuerbare Variablen
-        $this->MaintainVariable('Power', $this->Translate('Power'), VARIABLETYPE_BOOLEAN, '~Switch', 1, true);
-        $this->MaintainVariable('Mode', $this->Translate('Mode'), VARIABLETYPE_INTEGER, 'MELCloud.Mode', 2, true);
-        $this->MaintainVariable('SetTemperature', $this->Translate('Target temperature'), VARIABLETYPE_FLOAT, 'MELCloud.Temperature', 3, true);
-        $this->MaintainVariable('FanSpeed', $this->Translate('Fan speed'), VARIABLETYPE_INTEGER, 'MELCloud.FanSpeed', 4, true);
-        $this->MaintainVariable('VaneVertical', $this->Translate('Vane vertical'), VARIABLETYPE_INTEGER, 'MELCloud.VaneVertical', 5, true);
-        $this->MaintainVariable('VaneHorizontal', $this->Translate('Vane horizontal'), VARIABLETYPE_INTEGER, 'MELCloud.VaneHorizontal', 6, true);
+        $this->MaintainVariable('Power', $this->Translate('Power'), VARIABLETYPE_BOOLEAN, $this->switchPresentation(), 1, true);
+        $this->MaintainVariable('Mode', $this->Translate('Mode'), VARIABLETYPE_INTEGER, $this->modePresentation(), 2, true);
+        $this->MaintainVariable('SetTemperature', $this->Translate('Target temperature'), VARIABLETYPE_FLOAT, $this->temperaturePresentation(), 3, true);
+        $this->MaintainVariable('FanSpeed', $this->Translate('Fan speed'), VARIABLETYPE_INTEGER, $this->fanSpeedPresentation(), 4, true);
+        $this->MaintainVariable('VaneVertical', $this->Translate('Vane vertical'), VARIABLETYPE_INTEGER, $this->vaneVerticalPresentation(), 5, true);
+        $this->MaintainVariable('VaneHorizontal', $this->Translate('Vane horizontal'), VARIABLETYPE_INTEGER, $this->vaneHorizontalPresentation(), 6, true);
 
         // Reine Anzeige-Variablen
         $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, '~Temperature', 7, true);
-        $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_INTEGER, 'MELCloud.Status', 8, true);
+        $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_INTEGER, $this->statusPresentation(), 8, true);
+
+        // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
+        $this->removeLegacyProfiles();
         $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Switch', 9, true);
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, '~Alert', 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
@@ -248,17 +249,37 @@ class MELCloudKlimageraet extends IPSModuleStrict
         return $key === false ? $default : (int) $key;
     }
 
-    private function createProfiles(): void
+    private function switchPresentation(): array
     {
-        $this->createProfileAssociations('MELCloud.Mode', VARIABLETYPE_INTEGER, '', [
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH];
+    }
+
+    private function temperaturePresentation(): array
+    {
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+            'MIN'          => 10,
+            'MAX'          => 31,
+            'STEP_SIZE'    => 0.5,
+            'SUFFIX'       => ' °C',
+            'DIGITS'       => 1
+        ];
+    }
+
+    private function modePresentation(): array
+    {
+        return $this->enumerationPresentation([
             [0, $this->Translate('Automatic'), 'Climate', -1],
             [1, $this->Translate('Heat'), 'Flame', 0xFF4500],
             [2, $this->Translate('Cool'), 'Snowflake', 0x1E90FF],
             [3, $this->Translate('Dry'), 'Drops', 0x00CED1],
             [4, $this->Translate('Fan'), 'Ventilation', -1]
         ]);
+    }
 
-        $this->createProfileAssociations('MELCloud.FanSpeed', VARIABLETYPE_INTEGER, '', [
+    private function fanSpeedPresentation(): array
+    {
+        return $this->enumerationPresentation([
             [0, $this->Translate('Automatic'), 'Ventilation', -1],
             [1, '1', '', -1],
             [2, '2', '', -1],
@@ -266,8 +287,11 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [4, '4', '', -1],
             [5, '5', '', -1]
         ]);
+    }
 
-        $this->createProfileAssociations('MELCloud.VaneVertical', VARIABLETYPE_INTEGER, '', [
+    private function vaneVerticalPresentation(): array
+    {
+        return $this->enumerationPresentation([
             [0, $this->Translate('Automatic'), '', -1],
             [1, '1', '', -1],
             [2, '2', '', -1],
@@ -276,8 +300,11 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [5, '5', '', -1],
             [7, $this->Translate('Swing'), 'Move', -1]
         ]);
+    }
 
-        $this->createProfileAssociations('MELCloud.VaneHorizontal', VARIABLETYPE_INTEGER, '', [
+    private function vaneHorizontalPresentation(): array
+    {
+        return $this->enumerationPresentation([
             [0, $this->Translate('Automatic'), '', -1],
             [1, $this->Translate('Left'), '', -1],
             [2, $this->Translate('Left-Centre'), '', -1],
@@ -286,8 +313,11 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [5, $this->Translate('Right'), '', -1],
             [7, $this->Translate('Swing'), 'Move', -1]
         ]);
+    }
 
-        $this->createProfileAssociations('MELCloud.Status', VARIABLETYPE_INTEGER, '', [
+    private function statusPresentation(): array
+    {
+        return $this->enumerationPresentation([
             [0, $this->Translate('Off'), '', -1],
             [1, $this->Translate('Idle'), '', -1],
             [2, $this->Translate('Heating'), 'Flame', 0xFF4500],
@@ -296,40 +326,45 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [5, $this->Translate('Ventilating'), 'Ventilation', -1],
             [6, $this->Translate('Automatic'), 'Climate', -1]
         ]);
-
-        // Solltemperatur 10–31 °C in 0,5er-Schritten
-        if (!IPS_VariableProfileExists('MELCloud.Temperature')) {
-            IPS_CreateVariableProfile('MELCloud.Temperature', VARIABLETYPE_FLOAT);
-        }
-        IPS_SetVariableProfileText('MELCloud.Temperature', '', ' °C');
-        IPS_SetVariableProfileValues('MELCloud.Temperature', 10, 31, 0.5);
-        IPS_SetVariableProfileDigits('MELCloud.Temperature', 1);
-        IPS_SetVariableProfileIcon('MELCloud.Temperature', 'Temperature');
-
-        // WiFi-Signalstärke in dBm
-        if (!IPS_VariableProfileExists('MELCloud.RSSI')) {
-            IPS_CreateVariableProfile('MELCloud.RSSI', VARIABLETYPE_INTEGER);
-        }
-        IPS_SetVariableProfileText('MELCloud.RSSI', '', ' dBm');
-        IPS_SetVariableProfileValues('MELCloud.RSSI', -100, 0, 1);
-        IPS_SetVariableProfileIcon('MELCloud.RSSI', 'Network');
     }
 
     /**
-     * Legt ein Integer-Profil mit Assoziationen an bzw. aktualisiert es.
+     * Baut eine Enumeration-Presentation (ersetzt die alten Custom-Variablenprofile).
      *
-     * @param array<int,array{0:int,1:string,2:string,3:int}> $associations
+     * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
-    private function createProfileAssociations(string $name, int $type, string $suffix, array $associations): void
+    private function enumerationPresentation(array $options): array
     {
-        if (!IPS_VariableProfileExists($name)) {
-            IPS_CreateVariableProfile($name, $type);
+        $values = [];
+        foreach ($options as $option) {
+            $values[] = [
+                'Value'   => $option[0],
+                'Caption' => $option[1],
+                'Icon'    => $option[2],
+                'Color'   => $option[3]
+            ];
         }
-        if ($suffix !== '') {
-            IPS_SetVariableProfileText($name, '', $suffix);
-        }
-        foreach ($associations as $assoc) {
-            IPS_SetVariableProfileAssociation($name, $assoc[0], $assoc[1], $assoc[2], $assoc[3]);
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'OPTIONS'      => json_encode($values)
+        ];
+    }
+
+    /**
+     * Entfernt die alten, instanzübergreifenden Custom-Variablenprofile aus Vorversionen.
+     * Schlägt (abgefangen) fehl, solange noch eine andere, nicht aktualisierte Geräte-Instanz
+     * das Profil referenziert – das Profil wird dann beim nächsten ApplyChanges erneut versucht.
+     */
+    private function removeLegacyProfiles(): void
+    {
+        foreach (['MELCloud.Mode', 'MELCloud.FanSpeed', 'MELCloud.VaneVertical', 'MELCloud.VaneHorizontal', 'MELCloud.Status', 'MELCloud.Temperature'] as $profile) {
+            if (IPS_VariableProfileExists($profile)) {
+                try {
+                    IPS_DeleteVariableProfile($profile);
+                } catch (Exception $e) {
+                    // noch in Benutzung durch eine andere Instanz – beim nächsten Mal erneut versuchen
+                }
+            }
         }
     }
 }
