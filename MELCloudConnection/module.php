@@ -282,8 +282,6 @@ class MELCloudConnection extends IPSModuleStrict
             }
         }
 
-        $this->SendDebug('normalizeUnit', (string) $unitID . ' settings-Keys: ' . implode(', ', array_keys($settings)), 0);
-
         $power = isset($settings['Power']) ? strtolower((string) $settings['Power']) !== 'false' : false;
 
         return [
@@ -298,7 +296,9 @@ class MELCloudConnection extends IPSModuleStrict
             'VaneHorizontalDirection' => $settings['VaneHorizontalDirection'] ?? null,
             'InStandbyMode'           => isset($settings['InStandbyMode']) && strtolower((string) $settings['InStandbyMode']) !== 'false',
             'IsInError'               => isset($settings['IsInError']) && strtolower((string) $settings['IsInError']) !== 'false',
-            'rssi'                    => isset($settings['rssi']) ? (int) $settings['rssi'] : null,
+            // rssi liegt auf Geräte-Ebene, nicht im settings-Array (bestätigt über
+            // andrew-blake/melcloudhome: AirToAirUnit.rssi <- data.get("rssi")).
+            'rssi'                    => isset($unit['rssi']) ? (int) $unit['rssi'] : null,
             'Connected'               => true
         ];
     }
@@ -345,23 +345,23 @@ class MELCloudConnection extends IPSModuleStrict
         ]);
 
         $response = $this->apiRequest('GET', '/telemetry/telemetry/energy/' . rawurlencode($unitID) . '?' . $query);
-        $this->SendDebug('fetchEnergy', $unitID . ' Rohe Antwort (1000 Zeichen): ' . substr($response, 0, 1000), 0);
         $data     = json_decode($response, true);
 
-        // Antwortstruktur: measureData -> values -> [{ value }]
-        $sum = 0.0;
+        // Antwortstruktur: measureData -> values -> [{ value }]. Die Werte kommen in Wh
+        // (bestätigt über andrew-blake/melcloudhome), nicht in kWh – daher /1000.
+        $sumWh = 0.0;
         if (isset($data['measureData']) && is_array($data['measureData'])) {
             foreach ($data['measureData'] as $measure) {
                 if (isset($measure['values']) && is_array($measure['values'])) {
                     foreach ($measure['values'] as $entry) {
                         if (isset($entry['value']) && is_numeric($entry['value'])) {
-                            $sum += (float) $entry['value'];
+                            $sumWh += (float) $entry['value'];
                         }
                     }
                 }
             }
         }
-        return $sum;
+        return $sumWh / 1000;
     }
 
     /**
