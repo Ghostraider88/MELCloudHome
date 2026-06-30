@@ -307,7 +307,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private function temperaturePresentation(): array
     {
         return [
-            'PRESENTATION' => VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE,
+            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
             'MIN'          => 16,
             'MAX'          => 31,
             'STEP_SIZE'    => 0.5,
