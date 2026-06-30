@@ -13,8 +13,8 @@
         {
             "type": "NumberSpinner",
             "name": "UpdateInterval",
-            "caption": "Status-Aktualisierung (Sekunden)",
-            "minimum": 30,
+            "caption": "Status-Aktualisierung (Sekunden, min. 10)",
+            "minimum": 10,
             "suffix": "s"
         },
         {

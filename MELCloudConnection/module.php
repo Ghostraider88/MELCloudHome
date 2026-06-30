@@ -29,7 +29,7 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->RegisterPropertyString('Email', '');
         $this->RegisterPropertyString('Password', '');
-        $this->RegisterPropertyInteger('UpdateInterval', 60);   // Sekunden
+        $this->RegisterPropertyInteger('UpdateInterval', 15);   // Sekunden
         $this->RegisterPropertyInteger('EnergyInterval', 30);   // Minuten
 
         // Token werden als Attribute (nicht im Formular) gespeichert
@@ -54,7 +54,7 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->SetStatus(102); // aktiv
 
-        $statusInterval = max(30, $this->ReadPropertyInteger('UpdateInterval')) * 1000;
+        $statusInterval = max(10, $this->ReadPropertyInteger('UpdateInterval')) * 1000;
         $energyInterval = max(5, $this->ReadPropertyInteger('EnergyInterval')) * 60 * 1000;
         $this->SetTimerInterval('UpdateStatus', $statusInterval);
         $this->SetTimerInterval('UpdateEnergy', $energyInterval);
@@ -154,16 +154,21 @@ class MELCloudConnection extends IPSModuleStrict
 
     public function ForwardData(string $JSONString): string
     {
+        $this->SendDebug('ForwardData', 'Empfangen: ' . substr($JSONString, 0, 300), 0);
+
         $outer = json_decode($JSONString, true);
         $data  = isset($outer['Buffer']) ? json_decode(hex2bin($outer['Buffer']), true) : null;
         if (!is_array($data) || !isset($data['UnitID'], $data['Control'])) {
+            $this->SendDebug('ForwardData', 'Ungültige Anfrage (kein UnitID/Control)', 0);
             return (string) json_encode(['success' => false, 'error' => 'invalid request']);
         }
 
         try {
             $this->sendControl($data['UnitID'], $data['Control']);
-            // Nach einer Steuerung zeitnah aktualisieren
-            $this->UpdateStatus();
+            $this->SendDebug('ForwardData', 'sendControl OK für UnitID=' . $data['UnitID'], 0);
+            // Bewusst kein Sofort-Refresh: die Cloud übernimmt den neuen Wert ggf. erst
+            // mit Verzögerung, ein sofortiger UpdateStatus() würde den optimistisch
+            // gesetzten Wert wieder mit dem alten Cloud-Stand überschreiben.
             return (string) json_encode(['success' => true]);
         } catch (Exception $e) {
             $this->SendDebug(__FUNCTION__, 'Control-Fehler: ' . $e->getMessage(), 0);
