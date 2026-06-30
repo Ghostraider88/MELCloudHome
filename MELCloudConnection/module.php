@@ -69,6 +69,17 @@ class MELCloudConnection extends IPSModuleStrict
      * ---------------------------------------------------------------------- */
 
     /**
+     * Ruft alle Daten einmalig ab (Status + Energie + Außentemperatur).
+     * Gedacht als Test-Button im Formular.
+     */
+    public function FetchAll(): void
+    {
+        $this->UpdateStatus();
+        $this->UpdateEnergy();
+        echo $this->Translate('Done. Check the debug output for details.');
+    }
+
+    /**
      * Testet die Anmeldung und meldet das Ergebnis zurück (für Button im Formular).
      */
     public function TestLogin(): void

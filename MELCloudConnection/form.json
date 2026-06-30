@@ -30,6 +30,11 @@
             "type": "Button",
             "caption": "Login testen",
             "onClick": "MELC_TestLogin($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "Alle Daten abrufen",
+            "onClick": "MELC_FetchAll($id);"
         }
     ],
     "status": [
