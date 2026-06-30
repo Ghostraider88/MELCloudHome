@@ -130,25 +130,35 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /**
-     * Pollt die Energiedaten je Gerät (seltener) und verteilt sie an die Kinder.
+     * Pollt Energiedaten und Außentemperatur je Gerät (seltener) und verteilt sie an die Kinder.
      */
     public function UpdateEnergy(): void
     {
         foreach ($this->getChildUnitIDs() as $unitID) {
+            $payload = ['UnitID' => $unitID];
+
             try {
-                $energy = $this->fetchEnergy($unitID);
+                $payload['EnergyConsumed'] = $this->fetchEnergy($unitID);
             } catch (Exception $e) {
-                $this->SendDebug(__FUNCTION__, $unitID . ': ' . $e->getMessage(), 0);
-                continue;
+                $this->SendDebug(__FUNCTION__, $unitID . ' Energie: ' . $e->getMessage(), 0);
             }
-            $this->SendDataToChildren((string) json_encode([
-                'DataID'  => self::TX_TO_CHILD,
-                'UnitID'  => $unitID,
-                'Buffer'  => bin2hex((string) json_encode([
-                    'UnitID'         => $unitID,
-                    'EnergyConsumed' => $energy
-                ]))
-            ]));
+
+            try {
+                $temp = $this->fetchOutdoorTemperature($unitID);
+                if ($temp !== null) {
+                    $payload['OutdoorTemperature'] = $temp;
+                }
+            } catch (Exception $e) {
+                $this->SendDebug(__FUNCTION__, $unitID . ' Außentemperatur: ' . $e->getMessage(), 0);
+            }
+
+            if (count($payload) > 1) {
+                $this->SendDataToChildren((string) json_encode([
+                    'DataID' => self::TX_TO_CHILD,
+                    'UnitID' => $unitID,
+                    'Buffer' => bin2hex((string) json_encode($payload))
+                ]));
+            }
         }
     }
 
@@ -362,6 +372,43 @@ class MELCloudConnection extends IPSModuleStrict
             }
         }
         return $sumWh / 1000;
+    }
+
+    /**
+     * Holt die Außentemperatur eines Geräts über den trendsummary-Endpunkt.
+     * Gibt null zurück, wenn das Gerät keinen Außensensor hat oder keine Daten vorliegen.
+     */
+    private function fetchOutdoorTemperature(string $unitID): ?float
+    {
+        $now  = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $from = $now->modify('-1 day');
+        $query = http_build_query([
+            'unitId' => $unitID,
+            'period' => 'Daily',
+            'from'   => $from->format('Y-m-d\TH:i:s.0000000'),
+            'to'     => $now->format('Y-m-d\TH:i:s.0000000')
+        ]);
+
+        $response = $this->apiRequest('GET', '/report/v1/trendsummary?' . $query);
+        $data     = json_decode($response, true);
+
+        if (!is_array($data) || !isset($data['datasets']) || !is_array($data['datasets'])) {
+            return null;
+        }
+
+        foreach ($data['datasets'] as $dataset) {
+            if (stripos((string) ($dataset['label'] ?? ''), 'OUTDOOR_TEMPERATURE') !== false) {
+                $points = $dataset['data'] ?? [];
+                if (!empty($points)) {
+                    $last = end($points);
+                    if (isset($last['y']) && is_numeric($last['y'])) {
+                        return (float) $last['y'];
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
