@@ -37,7 +37,7 @@ MELCloud Connection (Splitter, hält Session + Konfigurator)
 ```
 
 - Statusdaten werden zyklisch von `GET /context` geholt und an die Geräte verteilt.
-- Steuerbefehle gehen vom Gerät über den Splitter als `PUT /api/devices/{id}/control` an die Cloud.
+- Steuerbefehle gehen vom Gerät über den Splitter als `PUT /monitor/ataunit/{id}` an die Cloud.
 - Energiedaten werden über die Telemetrie-Endpunkte in einem längeren Intervall geholt.
 
 ## Hinweise

@@ -9,7 +9,7 @@ für die Klimageräte dient.
   Speicherung und Erneuerung der Tokens.
 - Zyklisches Polling des Gerätestatus über `GET /context` und Verteilung an die Kinder.
 - Zyklisches Polling der Energiedaten über die Telemetrie-Endpunkte (längeres Intervall).
-- Entgegennahme von Steuerbefehlen der Kinder und Versand als `PUT /api/devices/{id}/control`.
+- Entgegennahme von Steuerbefehlen der Kinder und Versand als `PUT /monitor/ataunit/{id}`.
 - Konfigurator zum Anlegen der Klimageräte-Instanzen.
 
 ## Einstellungen
