@@ -405,11 +405,27 @@ class MELCloudKlimageraet extends IPSModuleStrict
     /**
      * Baut eine Wertedarstellung (für reine Anzeige-Variablen, z. B. Status).
      *
+     * Per IPS_GetVariable()['VariablePresentation'] eines manuell vom Nutzer angelegten
+     * Beispiels verifiziert: Im Gegensatz zur Aufzählung (einzelner "Color"-Schlüssel)
+     * erwartet die Wertedarstellung "ColorActive" (bool) und "ColorValue" (int) getrennt.
+     *
      * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
     private function valuePresentation(array $options): array
     {
-        $values = $this->buildOptionValues($options);
+        $values = [];
+        foreach ($options as $option) {
+            $hasIcon  = $option[2] !== '';
+            $hasColor = $option[3] !== -1;
+            $values[] = [
+                'Value'       => $option[0],
+                'Caption'     => $option[1],
+                'IconActive'  => $hasIcon,
+                'IconValue'   => $hasIcon ? $option[2] : '',
+                'ColorActive' => $hasColor,
+                'ColorValue'  => $hasColor ? $option[3] : -1
+            ];
+        }
         return [
             'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
             'OPTIONS'      => json_encode($values)

@@ -282,6 +282,8 @@ class MELCloudConnection extends IPSModuleStrict
             }
         }
 
+        $this->SendDebug('normalizeUnit', (string) $unitID . ' settings-Keys: ' . implode(', ', array_keys($settings)), 0);
+
         $power = isset($settings['Power']) ? strtolower((string) $settings['Power']) !== 'false' : false;
 
         return [
@@ -343,6 +345,7 @@ class MELCloudConnection extends IPSModuleStrict
         ]);
 
         $response = $this->apiRequest('GET', '/telemetry/telemetry/energy/' . rawurlencode($unitID) . '?' . $query);
+        $this->SendDebug('fetchEnergy', $unitID . ' Rohe Antwort (1000 Zeichen): ' . substr($response, 0, 1000), 0);
         $data     = json_decode($response, true);
 
         // Antwortstruktur: measureData -> values -> [{ value }]
