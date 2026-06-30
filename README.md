@@ -4,14 +4,21 @@ IP-Symcon-Library zur Steuerung von **Mitsubishi-Klimageräten (Air-to-Air / Kli
 über die **MELCloud Home** Cloud.
 
 > Hinweis: Es wird ausschließlich die Klima-Funktionalität (ATA) unterstützt – keine
-> Wärmepumpe (ATW), kein Warmwasser. Als technische Vorlage diente das Home-Assistant-Projekt
-> [`andrew-blake/melcloudhome`](https://github.com/andrew-blake/melcloudhome).
+> Wärmepumpe (ATW), kein Warmwasser. Als technische Vorlage für die undokumentierten
+> Cloud-Endpunkte diente das Home-Assistant-Projekt
+> [`andrew-blake/melcloudhome`](https://github.com/andrew-blake/melcloudhome) (MIT-Lizenz) –
+> übernommen wurde dabei nur das Wissen über API-Endpunkte/Parameter, kein Code.
+
+**Status:** Beta. Geplant ist die Einreichung im offiziellen
+[IP-Symcon Module Store](https://www.symcon.de/de/module-store/) (zunächst Beta-Kanal,
+später Stable nach Symcon-Review).
 
 ## Module
 
 | Modul | Typ | Aufgabe |
 |-------|-----|---------|
 | [MELCloud Connection](MELCloudConnection/) | Splitter | Anmeldung (OAuth 2.0 + PKCE), Status-Polling, Konfigurator, Befehlsweiterleitung |
+| [MELCloud Configurator](MELCloudConfigurator/) | Konfigurator | Listet Geräte aus dem Konto, legt Klimagerät-Instanzen an (Kind der Connection-Instanz) |
 | [MELCloud Klimagerät](MELCloudKlimageraet/) | Device | Ein Klimagerät: Status-Variablen und Steuerung |
 
 ## Installation
@@ -46,3 +53,7 @@ MELCloud Connection (Splitter, hält Session + Konfigurator)
   Ändert Mitsubishi den Login-Ablauf, kann eine Anpassung des Connection-Moduls nötig werden.
 - Polling-Intervalle bewusst konservativ wählen, um die API-Limits zu respektieren
   (Standard: Status 60 s, Energie 30 min).
+
+## Lizenz
+
+[MIT](LICENSE) – siehe `LICENSE`-Datei.
