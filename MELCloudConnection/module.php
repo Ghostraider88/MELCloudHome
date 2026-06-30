@@ -29,7 +29,7 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->RegisterPropertyString('Email', '');
         $this->RegisterPropertyString('Password', '');
-        $this->RegisterPropertyInteger('UpdateInterval', 15);   // Sekunden
+        $this->RegisterPropertyInteger('UpdateInterval', 60);   // Sekunden
         $this->RegisterPropertyInteger('EnergyInterval', 30);   // Minuten
 
         // Token werden als Attribute (nicht im Formular) gespeichert
@@ -54,8 +54,12 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->SetStatus(102); // aktiv
 
-        $statusInterval = max(10, $this->ReadPropertyInteger('UpdateInterval')) * 1000;
-        $energyInterval = max(5, $this->ReadPropertyInteger('EnergyInterval')) * 60 * 1000;
+        // Status (Solltemperatur, Raumtemperatur, Modus, Lüfter, Vanes, Power) – 60s ist die
+        // sinnvolle Untergrenze für MELCloud; aggressiveres Polling (10s/30s) wird unterbunden.
+        $statusInterval = max(60, $this->ReadPropertyInteger('UpdateInterval')) * 1000;
+        // Energie-/Verbrauchsdaten – deutlich rate-limit-empfindlicher (bekannte 429-Fehler),
+        // daher mindestens 30 Minuten.
+        $energyInterval = max(30, $this->ReadPropertyInteger('EnergyInterval')) * 60 * 1000;
         $this->SetTimerInterval('UpdateStatus', $statusInterval);
         $this->SetTimerInterval('UpdateEnergy', $energyInterval);
     }

@@ -13,15 +13,15 @@
         {
             "type": "NumberSpinner",
             "name": "UpdateInterval",
-            "caption": "Status-Aktualisierung (Sekunden, min. 10)",
-            "minimum": 10,
+            "caption": "Status-Aktualisierung (Sekunden, min. 60)",
+            "minimum": 60,
             "suffix": "s"
         },
         {
             "type": "NumberSpinner",
             "name": "EnergyInterval",
-            "caption": "Energie-Aktualisierung (Minuten)",
-            "minimum": 5,
+            "caption": "Energie-Aktualisierung (Minuten, min. 30)",
+            "minimum": 30,
             "suffix": "min"
         }
     ],
