@@ -337,9 +337,13 @@ class MELCloudKlimageraet extends IPSModuleStrict
         ]);
     }
 
+    /**
+     * Status ist eine reine Anzeige-Variable (nicht schaltbar). Dafür die Wertedarstellung
+     * statt der Aufzählung nutzen – letztere ist für interaktive Auswahl (Buttons) gedacht.
+     */
     private function statusPresentation(): array
     {
-        return $this->enumerationPresentation([
+        return $this->valuePresentation([
             [0, $this->Translate('Off'), '', -1],
             [1, $this->Translate('Idle'), '', -1],
             [2, $this->Translate('Heating'), 'Flame', 0xFF4500],
@@ -352,15 +356,47 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     /**
      * Baut eine Enumeration-Presentation (ersetzt die alten Custom-Variablenprofile).
+     * Für schaltbare Variablen, die als Auswahl-Buttons dargestellt werden.
      *
      * Das OPTIONS-Listenformular des Editors (enumerationForm.php) erwartet je Zeile
      * IconActive (bool, ob das Icon überschrieben wird) und IconValue (Icon-Name) statt
      * eines einfachen "Icon"-Schlüssels – ohne diese Schlüssel meldet der Editor
-     * "Undefined array key IconActive".
+     * "Undefined array key IconActive". Damit Beschriftung UND Icon angezeigt werden
+     * (statt nur Beschriftung), wird zusätzlich DISPLAY=2 (Caption and Icon) gesetzt;
+     * LAYOUT=1 (Row) ergibt die segmentierte Button-Reihe.
      *
      * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
     private function enumerationPresentation(array $options): array
+    {
+        $values = $this->buildOptionValues($options);
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'OPTIONS'      => json_encode($values),
+            'LAYOUT'       => 1, // Row
+            'DISPLAY'      => 2  // Caption and Icon
+        ];
+    }
+
+    /**
+     * Baut eine Wertedarstellung (für reine Anzeige-Variablen, z. B. Status).
+     *
+     * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
+     */
+    private function valuePresentation(array $options): array
+    {
+        $values = $this->buildOptionValues($options);
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'OPTIONS'      => json_encode($values)
+        ];
+    }
+
+    /**
+     * @param array<int,array{0:int,1:string,2:string,3:int}> $options
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildOptionValues(array $options): array
     {
         $values = [];
         foreach ($options as $option) {
@@ -373,10 +409,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 'Color'      => $option[3]
             ];
         }
-        return [
-            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
-            'OPTIONS'      => json_encode($values)
-        ];
+        return $values;
     }
 
     /**
