@@ -59,9 +59,31 @@ class MELCloudKlimageraet extends IPSModuleStrict
         if ($unitID !== '') {
             $this->SetReceiveDataFilter('.*2FD07B1C-5822-48B2-B394-0000776DF537.*');
             $this->SetStatus(102);
+            $this->triggerImmediateRefresh();
         } else {
             $this->SetReceiveDataFilter('(?!)'); // nichts empfangen, solange unkonfiguriert
             $this->SetStatus(104);
+        }
+    }
+
+    /**
+     * Stößt direkt nach dem Anlegen/Speichern einen sofortigen Status-Poll am
+     * Connection-Splitter an, damit die Werte nicht erst auf den nächsten
+     * regulären Polling-Zyklus (bis zu 60s) warten müssen.
+     */
+    private function triggerImmediateRefresh(): void
+    {
+        if (IPS_GetKernelRunlevel() !== KR_READY) {
+            return;
+        }
+        $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
+        if ($parentID === 0 || !IPS_InstanceExists($parentID)) {
+            return;
+        }
+        try {
+            MELC_UpdateStatus($parentID);
+        } catch (Exception $e) {
+            $this->SendDebug(__FUNCTION__, 'Sofort-Refresh fehlgeschlagen: ' . $e->getMessage(), 0);
         }
     }
 
@@ -331,17 +353,24 @@ class MELCloudKlimageraet extends IPSModuleStrict
     /**
      * Baut eine Enumeration-Presentation (ersetzt die alten Custom-Variablenprofile).
      *
+     * Das OPTIONS-Listenformular des Editors (enumerationForm.php) erwartet je Zeile
+     * IconActive (bool, ob das Icon überschrieben wird) und IconValue (Icon-Name) statt
+     * eines einfachen "Icon"-Schlüssels – ohne diese Schlüssel meldet der Editor
+     * "Undefined array key IconActive".
+     *
      * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
     private function enumerationPresentation(array $options): array
     {
         $values = [];
         foreach ($options as $option) {
+            $hasIcon = $option[2] !== '';
             $values[] = [
-                'Value'   => $option[0],
-                'Caption' => $option[1],
-                'Icon'    => $option[2],
-                'Color'   => $option[3]
+                'Value'      => $option[0],
+                'Caption'    => $option[1],
+                'IconActive' => $hasIcon,
+                'IconValue'  => $hasIcon ? $option[2] : '',
+                'Color'      => $option[3]
             ];
         }
         return [
