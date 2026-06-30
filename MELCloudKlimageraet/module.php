@@ -183,7 +183,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 break;
 
             case 'SetTemperature':
-                $temp = max(10.0, min(31.0, (float) $Value));
+                $temp = max(16.0, min(31.0, (float) $Value));
                 $this->SetValue('SetTemperature', $temp);
                 $this->SetBuffer('PendingSetTemperature', (string) $temp);
                 $this->SetTimerInterval('FlushSetTemperature', self::TEMPERATURE_DEBOUNCE_MS);
@@ -304,7 +304,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
     {
         return [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'MIN'          => 10,
+            'MIN'          => 16,
             'MAX'          => 31,
             'STEP_SIZE'    => 0.5,
             'SUFFIX'       => ' °C',
