@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Hält die Verbindung zur MELCloud Home Cloud (OAuth 2.0 + PKCE), pollt den
  * Gerätestatus über /context und verteilt ihn an die Klimageräte-Instanzen.
  * Steuerbefehle der Kinder werden per ForwardData entgegengenommen und als
- * PUT /api/devices/{unit}/control an die Cloud gesendet.
+ * PUT /monitor/ataunit/{unit} an die Cloud gesendet.
  */
 class MELCloudConnection extends IPSModuleStrict
 {
@@ -321,15 +321,24 @@ class MELCloudConnection extends IPSModuleStrict
             }
         }
 
-        $this->apiRequest('PUT', '/api/devices/' . rawurlencode($unitID) . '/control', $body);
+        $this->apiRequest('PUT', '/monitor/ataunit/' . rawurlencode($unitID), $body);
     }
 
     /**
-     * Holt den (kumulierten) Energieverbrauch eines Geräts in kWh.
+     * Holt den (kumulierten) Energieverbrauch eines Geräts in kWh (letzte 24h, stündlich).
      */
     private function fetchEnergy(string $unitID): float
     {
-        $response = $this->apiRequest('GET', '/telemetry/telemetry/energy/' . rawurlencode($unitID));
+        $now  = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $from = $now->modify('-1 day');
+        $query = http_build_query([
+            'from'     => $from->format('Y-m-d H:i'),
+            'to'       => $now->format('Y-m-d H:i'),
+            'interval' => 'Hour',
+            'measure'  => 'cumulative_energy_consumed_since_last_upload'
+        ]);
+
+        $response = $this->apiRequest('GET', '/telemetry/telemetry/energy/' . rawurlencode($unitID) . '?' . $query);
         $data     = json_decode($response, true);
 
         // Antwortstruktur: measureData -> values -> [{ value }]
