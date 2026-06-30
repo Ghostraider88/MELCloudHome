@@ -19,11 +19,17 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private const VANE_V_MAP = [0 => 'Auto', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 7 => 'Swing'];
     private const VANE_H_MAP = [0 => 'Auto', 1 => 'Left', 2 => 'LeftCentre', 3 => 'Centre', 4 => 'RightCentre', 5 => 'Right', 7 => 'Swing'];
 
+    // Verzögerung, mit der mehrere schnelle Soll-Temperatur-Änderungen (z. B. durch
+    // wiederholtes Klicken auf den Schieber) zu einem einzelnen Steuerbefehl
+    // zusammengefasst werden, statt jeden Zwischenwert sofort an die Cloud zu senden.
+    private const TEMPERATURE_DEBOUNCE_MS = 1000;
+
     public function Create(): void
     {
         parent::Create();
 
         $this->RegisterPropertyString('UnitID', '');
+        $this->RegisterTimer('FlushSetTemperature', 0, 'MELA_FlushSetTemperature($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges(): void
@@ -178,8 +184,9 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
             case 'SetTemperature':
                 $temp = max(10.0, min(31.0, (float) $Value));
-                $this->control(['setTemperature' => $temp]);
                 $this->SetValue('SetTemperature', $temp);
+                $this->SetBuffer('PendingSetTemperature', (string) $temp);
+                $this->SetTimerInterval('FlushSetTemperature', self::TEMPERATURE_DEBOUNCE_MS);
                 break;
 
             case 'FanSpeed':
@@ -212,6 +219,23 @@ class MELCloudKlimageraet extends IPSModuleStrict
             default:
                 throw new Exception('Invalid Ident: ' . $Ident);
         }
+    }
+
+    /**
+     * Timer-Callback (MELA_FlushSetTemperature): sendet den zuletzt gepufferten
+     * Soll-Temperatur-Wert genau einmal an die Cloud, nachdem für
+     * TEMPERATURE_DEBOUNCE_MS keine weitere Änderung mehr eingegangen ist.
+     */
+    public function FlushSetTemperature(): void
+    {
+        $this->SetTimerInterval('FlushSetTemperature', 0);
+
+        $pending = $this->GetBuffer('PendingSetTemperature');
+        if ($pending === '') {
+            return;
+        }
+        $this->SetBuffer('PendingSetTemperature', '');
+        $this->control(['setTemperature' => (float) $pending]);
     }
 
     /**
@@ -291,18 +315,18 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private function modePresentation(): array
     {
         return $this->enumerationPresentation([
-            [0, $this->Translate('Automatic'), 'Climate', -1],
-            [1, $this->Translate('Heat'), 'Flame', 0xFF4500],
-            [2, $this->Translate('Cool'), 'Snowflake', 0x1E90FF],
-            [3, $this->Translate('Dry'), 'Drops', 0x00CED1],
-            [4, $this->Translate('Fan'), 'Ventilation', -1]
+            [0, $this->Translate('Automatic'), 'arrows-rotate', -1],
+            [1, $this->Translate('Heat'), 'heat', 0xFF4500],
+            [2, $this->Translate('Cool'), 'snowflake', 0x1E90FF],
+            [3, $this->Translate('Dry'), 'droplet', 0x00CED1],
+            [4, $this->Translate('Fan'), 'fan', -1]
         ]);
     }
 
     private function fanSpeedPresentation(): array
     {
         return $this->enumerationPresentation([
-            [0, $this->Translate('Automatic'), 'Ventilation', -1],
+            [0, $this->Translate('Automatic'), 'fan', -1],
             [1, '1', '', -1],
             [2, '2', '', -1],
             [3, '3', '', -1],
@@ -320,7 +344,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [3, '3', '', -1],
             [4, '4', '', -1],
             [5, '5', '', -1],
-            [7, $this->Translate('Swing'), 'Move', -1]
+            [7, $this->Translate('Swing'), '', -1]
         ]);
     }
 
@@ -333,7 +357,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [3, $this->Translate('Centre'), '', -1],
             [4, $this->Translate('Right-Centre'), '', -1],
             [5, $this->Translate('Right'), '', -1],
-            [7, $this->Translate('Swing'), 'Move', -1]
+            [7, $this->Translate('Swing'), '', -1]
         ]);
     }
 
@@ -346,11 +370,11 @@ class MELCloudKlimageraet extends IPSModuleStrict
         return $this->valuePresentation([
             [0, $this->Translate('Off'), '', -1],
             [1, $this->Translate('Idle'), '', -1],
-            [2, $this->Translate('Heating'), 'Flame', 0xFF4500],
-            [3, $this->Translate('Cooling'), 'Snowflake', 0x1E90FF],
-            [4, $this->Translate('Drying'), 'Drops', 0x00CED1],
-            [5, $this->Translate('Ventilating'), 'Ventilation', -1],
-            [6, $this->Translate('Automatic'), 'Climate', -1]
+            [2, $this->Translate('Heating'), 'heat', 0xFF4500],
+            [3, $this->Translate('Cooling'), 'snowflake', 0x1E90FF],
+            [4, $this->Translate('Drying'), 'droplet', 0x00CED1],
+            [5, $this->Translate('Ventilating'), 'fan', -1],
+            [6, $this->Translate('Automatic'), 'arrows-rotate', -1]
         ]);
     }
 
