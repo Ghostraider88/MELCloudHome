@@ -401,24 +401,35 @@ class MELCloudConnection extends IPSModuleStrict
         ]);
 
         $response = $this->apiRequest('GET', '/report/v1/trendsummary?' . $query);
-        $data     = json_decode($response, true);
+        $this->SendDebug('fetchOutdoorTemperature', $unitID . ' Antwort (300 Zeichen): ' . substr($response, 0, 300), 0);
+        $data = json_decode($response, true);
+
+        // Mobile BFF liefert die Antwort in einer Liste verpackt
+        if (isset($data[0])) {
+            $data = $data[0];
+        }
 
         if (!is_array($data) || !isset($data['datasets']) || !is_array($data['datasets'])) {
+            $this->SendDebug('fetchOutdoorTemperature', $unitID . ' kein datasets-Feld', 0);
             return null;
         }
 
         foreach ($data['datasets'] as $dataset) {
-            if (stripos((string) ($dataset['label'] ?? ''), 'OUTDOOR_TEMPERATURE') !== false) {
+            $label = (string) ($dataset['label'] ?? '');
+            if (stripos($label, 'OUTDOOR_TEMPERATURE') !== false) {
                 $points = $dataset['data'] ?? [];
                 if (!empty($points)) {
                     $last = end($points);
                     if (isset($last['y']) && is_numeric($last['y'])) {
+                        $this->SendDebug('fetchOutdoorTemperature', $unitID . ' = ' . $last['y'] . ' °C', 0);
                         return (float) $last['y'];
                     }
                 }
             }
         }
 
+        $labels = implode(', ', array_map(fn($d) => $d['label'] ?? '?', $data['datasets']));
+        $this->SendDebug('fetchOutdoorTemperature', $unitID . ' OUTDOOR_TEMPERATURE nicht gefunden – Labels: ' . $labels, 0);
         return null;
     }
 
