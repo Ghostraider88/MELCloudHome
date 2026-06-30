@@ -45,7 +45,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         $this->MaintainVariable('VaneHorizontal', $this->Translate('Vane horizontal'), VARIABLETYPE_INTEGER, $this->vaneHorizontalPresentation(), 6, true);
 
         // Reine Anzeige-Variablen
-        $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, '~Temperature', 7, true);
+        $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_TEMPLATE_VALUE_PRESENTATION_ROOM_TEMPERATURE], 7, true);
         $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_STRING, $this->statusPresentation(), 8, true);
 
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
@@ -54,7 +54,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
-        $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, '~Temperature', 13, true);
+        $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_TEMPLATE_VALUE_PRESENTATION_ROOM_TEMPERATURE], 13, true);
 
         // Aktionen für steuerbare Variablen aktivieren
         foreach (['Power', 'Mode', 'SetTemperature', 'FanSpeed', 'VaneVertical', 'VaneHorizontal'] as $ident) {
