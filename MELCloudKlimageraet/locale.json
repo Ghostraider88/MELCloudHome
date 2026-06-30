@@ -35,7 +35,8 @@
             "Drying": "Entfeuchten",
             "Ventilating": "Lüften",
             "No fault": "Keine Störung",
-            "Fault": "Störung"
+            "Fault": "Störung",
+            "Outdoor temperature": "Außentemperatur"
         },
         "en": {
             "Geräte-ID (MELCloud)": "Device ID (MELCloud)",

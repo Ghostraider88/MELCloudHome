@@ -25,6 +25,7 @@ die passende Geräte-ID.
 | Störung | Wertedarstellung | Fehlerzustand des Geräts |
 | WLAN-Signal | MELCloud.RSSI | Signalstärke in dBm |
 | Energieverbrauch | ~Electricity | kumulierter Verbrauch in kWh |
+| Außentemperatur | ~Temperature | Außentemperatur (nur bei Geräten mit Außensensor) |
 
 ## Hinweise
 

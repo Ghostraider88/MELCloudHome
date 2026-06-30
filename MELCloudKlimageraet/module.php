@@ -54,6 +54,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
+        $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, '~Temperature', 13, true);
 
         // Aktionen für steuerbare Variablen aktivieren
         foreach (['Power', 'Mode', 'SetTemperature', 'FanSpeed', 'VaneVertical', 'VaneHorizontal'] as $ident) {
@@ -149,6 +150,9 @@ class MELCloudKlimageraet extends IPSModuleStrict
         }
         if (array_key_exists('EnergyConsumed', $buffer) && is_numeric($buffer['EnergyConsumed'])) {
             $this->SetValue('EnergyConsumed', (float) $buffer['EnergyConsumed']);
+        }
+        if (array_key_exists('OutdoorTemperature', $buffer) && is_numeric($buffer['OutdoorTemperature'])) {
+            $this->SetValue('OutdoorTemperature', (float) $buffer['OutdoorTemperature']);
         }
 
         // Betriebsstatus ableiten (nur bei vollständigem Statusdatensatz)
@@ -303,7 +307,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private function temperaturePresentation(): array
     {
         return [
-            'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
+            'PRESENTATION' => VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE,
             'MIN'          => 16,
             'MAX'          => 31,
             'STEP_SIZE'    => 0.5,
