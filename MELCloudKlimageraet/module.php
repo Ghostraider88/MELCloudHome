@@ -50,10 +50,10 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
         $this->removeLegacyProfiles();
-        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Switch', 9, true);
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH], 9, true);
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
-        $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
-        $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
+        $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_INPUT, 'SUFFIX' => ' dBm', 'DIGITS' => 0], 11, true);
+        $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_TEMPLATE_VALUE_PRESENTATION_ENERGY], 12, true);
         $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_TEMPLATE_VALUE_PRESENTATION_ROOM_TEMPERATURE], 13, true);
 
         // Aktionen für steuerbare Variablen aktivieren
@@ -474,7 +474,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
      */
     private function removeLegacyProfiles(): void
     {
-        foreach (['MELCloud.Mode', 'MELCloud.FanSpeed', 'MELCloud.VaneVertical', 'MELCloud.VaneHorizontal', 'MELCloud.Status', 'MELCloud.Temperature'] as $profile) {
+        foreach (['MELCloud.Mode', 'MELCloud.FanSpeed', 'MELCloud.VaneVertical', 'MELCloud.VaneHorizontal', 'MELCloud.Status', 'MELCloud.Temperature', 'MELCloud.RSSI'] as $profile) {
             if (IPS_VariableProfileExists($profile)) {
                 try {
                     IPS_DeleteVariableProfile($profile);
