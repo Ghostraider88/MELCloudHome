@@ -11,7 +11,7 @@ declare(strict_types=1);
  */
 class MELCloudKlimageraet extends IPSModuleStrict
 {
-    private const RX_TO_PARENT = '{2FD07B1C-5822-48B2-B394-0000776DF537}';
+    private const RX_TO_PARENT = '{7D0C324F-EF82-4716-A8A0-00006378D27F}';
 
     // int <-> API-String Zuordnungen
     private const MODE_MAP   = [0 => 'Automatic', 1 => 'Heat', 2 => 'Cool', 3 => 'Dry', 4 => 'Fan'];
