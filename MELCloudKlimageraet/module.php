@@ -362,12 +362,15 @@ class MELCloudKlimageraet extends IPSModuleStrict
     }
 
     /**
-     * Status ist eine reine Anzeige-Variable (nicht schaltbar). Dafür die Wertedarstellung
-     * statt der Aufzählung nutzen – letztere ist für interaktive Auswahl (Buttons) gedacht.
+     * Status ist eine reine Anzeige-Variable (kein EnableAction). Die Wertedarstellung
+     * (VARIABLE_PRESENTATION_VALUE_PRESENTATION) zeigte trotz korrektem OPTIONS-Schema
+     * (per IPS_GetVariable-Dump verifiziert) nur die nackte Zahl – offenbar reine
+     * Zahlenformatierung statt Wert-zu-Text-Zuordnung. Die Aufzählung funktioniert
+     * dagegen nachweislich (Betriebsmodus) auch ohne EnableAction als reine Anzeige.
      */
     private function statusPresentation(): array
     {
-        return $this->valuePresentation([
+        return $this->enumerationPresentation([
             [0, $this->Translate('Off'), '', -1],
             [1, $this->Translate('Idle'), '', -1],
             [2, $this->Translate('Heating'), 'heat', 0xFF4500],
@@ -399,36 +402,6 @@ class MELCloudKlimageraet extends IPSModuleStrict
             'OPTIONS'      => json_encode($values),
             'LAYOUT'       => 1, // Row
             'DISPLAY'      => 2  // Caption and Icon
-        ];
-    }
-
-    /**
-     * Baut eine Wertedarstellung (für reine Anzeige-Variablen, z. B. Status).
-     *
-     * Per IPS_GetVariable()['VariablePresentation'] eines manuell vom Nutzer angelegten
-     * Beispiels verifiziert: Im Gegensatz zur Aufzählung (einzelner "Color"-Schlüssel)
-     * erwartet die Wertedarstellung "ColorActive" (bool) und "ColorValue" (int) getrennt.
-     *
-     * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
-     */
-    private function valuePresentation(array $options): array
-    {
-        $values = [];
-        foreach ($options as $option) {
-            $hasIcon  = $option[2] !== '';
-            $hasColor = $option[3] !== -1;
-            $values[] = [
-                'Value'       => $option[0],
-                'Caption'     => $option[1],
-                'IconActive'  => $hasIcon,
-                'IconValue'   => $hasIcon ? $option[2] : '',
-                'ColorActive' => $hasColor,
-                'ColorValue'  => $hasColor ? $option[3] : -1
-            ];
-        }
-        return [
-            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'OPTIONS'      => json_encode($values)
         ];
     }
 
