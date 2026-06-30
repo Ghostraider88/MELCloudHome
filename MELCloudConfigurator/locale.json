@@ -1,0 +1,18 @@
+{
+    "translations": {
+        "de": {
+            "Klimageräte": "Klimageräte",
+            "Name": "Name",
+            "Geräte-ID": "Geräte-ID",
+            "Verbunden": "Verbunden",
+            "Keine Verbindung zum Splitter": "Keine Verbindung zum Splitter"
+        },
+        "en": {
+            "Klimageräte": "Air conditioners",
+            "Name": "Name",
+            "Geräte-ID": "Device ID",
+            "Verbunden": "Connected",
+            "Keine Verbindung zum Splitter": "No connection to the splitter"
+        }
+    }
+}
