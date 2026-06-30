@@ -136,6 +136,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     public function RequestAction(string $Ident, mixed $Value): void
     {
+        $this->SendDebug('RequestAction', $Ident . '=' . json_encode($Value), 0);
+
         switch ($Ident) {
             case 'Power':
                 $this->control(['power' => (bool) $Value]);
