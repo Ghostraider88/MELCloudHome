@@ -33,7 +33,9 @@
             "Heating": "Heizen",
             "Cooling": "Kühlen",
             "Drying": "Entfeuchten",
-            "Ventilating": "Lüften"
+            "Ventilating": "Lüften",
+            "No fault": "Keine Störung",
+            "Fault": "Störung"
         },
         "en": {
             "Geräte-ID (MELCloud)": "Device ID (MELCloud)",

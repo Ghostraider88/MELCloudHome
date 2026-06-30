@@ -51,7 +51,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
         $this->removeLegacyProfiles();
         $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, '~Switch', 9, true);
-        $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, '~Alert', 10, true);
+        $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, 'MELCloud.RSSI', 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, '~Electricity', 12, true);
 
@@ -183,7 +183,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 break;
 
             case 'SetTemperature':
-                $temp = max(10.0, min(31.0, (float) $Value));
+                $temp = max(16.0, min(31.0, (float) $Value));
                 $this->SetValue('SetTemperature', $temp);
                 $this->SetBuffer('PendingSetTemperature', (string) $temp);
                 $this->SetTimerInterval('FlushSetTemperature', self::TEMPERATURE_DEBOUNCE_MS);
@@ -304,7 +304,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
     {
         return [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
-            'MIN'          => 10,
+            'MIN'          => 16,
             'MAX'          => 31,
             'STEP_SIZE'    => 0.5,
             'SUFFIX'       => ' °C',
@@ -383,7 +383,19 @@ class MELCloudKlimageraet extends IPSModuleStrict
     }
 
     /**
-     * @param array<int,array{0:string,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
+     * Eigene Wertedarstellung statt des Systemprofils ~Alert, dessen Beschriftung
+     * ("OK"/"Alarm") nicht änderbar ist.
+     */
+    private function errorPresentation(): array
+    {
+        return $this->valuePresentation([
+            [false, $this->Translate('No fault'), '', -1],
+            [true, $this->Translate('Fault'), 'triangle-exclamation', 0xFF0000]
+        ]);
+    }
+
+    /**
+     * @param array<int,array{0:bool|string,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
     private function valuePresentation(array $options): array
     {

@@ -11,7 +11,7 @@ die passende Geräte-ID.
 |----------|-------------|--------------|
 | Zustand | Schalter (Enumeration) | Gerät ein-/ausschalten |
 | Betriebsmodus | Enumeration | Heizen, Kühlen, Automatik, Entfeuchten, Lüften |
-| Solltemperatur | Schieberegler | 10–31 °C in 0,5-Schritten |
+| Solltemperatur | Schieberegler | 16–31 °C in 0,5-Schritten |
 | Lüftergeschwindigkeit | Enumeration | Auto, 1–5 |
 | Lamelle vertikal | Enumeration | Auto, 1–5, Schwenken |
 | Lamelle horizontal | Enumeration | Auto, Links … Rechts, Schwenken |
@@ -20,9 +20,9 @@ die passende Geräte-ID.
 | Variable | Darstellung | Beschreibung |
 |----------|-------------|--------------|
 | Raumtemperatur | ~Temperature | aktuelle Raumtemperatur |
-| Status | Enumeration | abgeleitet (Aus/Leerlauf/Heizen/Kühlen/…) |
-| Verbunden | ~Connect | Gerät online |
-| Störung | ~Alert | Fehlerzustand des Geräts |
+| Status | Wertedarstellung | abgeleitet (Aus/Leerlauf/Heizen/Kühlen/…) |
+| Verbunden | ~Switch | Gerät online |
+| Störung | Wertedarstellung | Fehlerzustand des Geräts |
 | WLAN-Signal | MELCloud.RSSI | Signalstärke in dBm |
 | Energieverbrauch | ~Electricity | kumulierter Verbrauch in kWh |
 

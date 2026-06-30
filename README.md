@@ -31,7 +31,7 @@ später Stable nach Symcon-Review).
 ## Funktionsumfang je Klimagerät
 
 **Steuerbar:** Ein/Aus, Betriebsmodus (Heizen/Kühlen/Automatik/Entfeuchten/Lüften),
-Solltemperatur (10–31 °C), Lüftergeschwindigkeit (Auto, 1–5), Lamellen vertikal und horizontal.
+Solltemperatur (16–31 °C), Lüftergeschwindigkeit (Auto, 1–5), Lamellen vertikal und horizontal.
 
 **Anzeige:** Raumtemperatur, Betriebsstatus, Verbindungsstatus, Störung,
 WLAN-Signalstärke, Energieverbrauch.
