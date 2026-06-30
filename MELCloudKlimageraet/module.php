@@ -46,7 +46,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
         // Reine Anzeige-Variablen
         $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, '~Temperature', 7, true);
-        $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_INTEGER, $this->statusPresentation(), 8, true);
+        $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_STRING, $this->statusPresentation(), 8, true);
 
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
         $this->removeLegacyProfiles();
@@ -268,21 +268,21 @@ class MELCloudKlimageraet extends IPSModuleStrict
      * Helfer
      * ---------------------------------------------------------------------- */
 
-    private function deriveOperatingStatus(array $buffer): int
+    private function deriveOperatingStatus(array $buffer): string
     {
         if (!($buffer['Power'] ?? false)) {
-            return 0; // Aus
+            return 'off';
         }
         if ($buffer['InStandbyMode'] ?? false) {
-            return 1; // Leerlauf
+            return 'idle';
         }
         switch ((string) ($buffer['OperationMode'] ?? '')) {
-            case 'Heat':      return 2;
-            case 'Cool':      return 3;
-            case 'Dry':       return 4;
-            case 'Fan':       return 5;
-            case 'Automatic': return 6;
-            default:          return 1;
+            case 'Heat':      return 'heating';
+            case 'Cool':      return 'cooling';
+            case 'Dry':       return 'drying';
+            case 'Fan':       return 'fan';
+            case 'Automatic': return 'automatic';
+            default:          return 'idle';
         }
     }
 
@@ -362,23 +362,48 @@ class MELCloudKlimageraet extends IPSModuleStrict
     }
 
     /**
-     * Status ist eine reine Anzeige-Variable (kein EnableAction). Die Wertedarstellung
-     * (VARIABLE_PRESENTATION_VALUE_PRESENTATION) zeigte trotz korrektem OPTIONS-Schema
-     * (per IPS_GetVariable-Dump verifiziert) nur die nackte Zahl – offenbar reine
-     * Zahlenformatierung statt Wert-zu-Text-Zuordnung. Die Aufzählung funktioniert
-     * dagegen nachweislich (Betriebsmodus) auch ohne EnableAction als reine Anzeige.
+     * Status ist eine reine Anzeige-Variable (kein EnableAction) – Aufzählung
+     * (VARIABLE_PRESENTATION_ENUMERATION) ist dafür nicht zulässig ("Diese Darstellung
+     * ist nur für Variablen mit einer Variablenaktion verfügbar"). Die Wertedarstellung
+     * (VARIABLE_PRESENTATION_VALUE_PRESENTATION) erwartet außerdem Value-Einträge, deren
+     * Typ exakt zum Variablentyp passt – daher String-Variable mit String-Values statt
+     * Integer (per IPS_GetVariable-Dump einer funktionierenden Referenzvariable bestätigt).
      */
     private function statusPresentation(): array
     {
-        return $this->enumerationPresentation([
-            [0, $this->Translate('Off'), '', -1],
-            [1, $this->Translate('Idle'), '', -1],
-            [2, $this->Translate('Heating'), 'heat', 0xFF4500],
-            [3, $this->Translate('Cooling'), 'snowflake', 0x1E90FF],
-            [4, $this->Translate('Drying'), 'droplet', 0x00CED1],
-            [5, $this->Translate('Ventilating'), 'fan', -1],
-            [6, $this->Translate('Automatic'), 'arrows-rotate', -1]
+        return $this->valuePresentation([
+            ['off', $this->Translate('Off'), '', -1],
+            ['idle', $this->Translate('Idle'), '', -1],
+            ['heating', $this->Translate('Heating'), 'heat', 0xFF4500],
+            ['cooling', $this->Translate('Cooling'), 'snowflake', 0x1E90FF],
+            ['drying', $this->Translate('Drying'), 'droplet', 0x00CED1],
+            ['fan', $this->Translate('Ventilating'), 'fan', -1],
+            ['automatic', $this->Translate('Automatic'), 'arrows-rotate', -1]
         ]);
+    }
+
+    /**
+     * @param array<int,array{0:string,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
+     */
+    private function valuePresentation(array $options): array
+    {
+        $values = [];
+        foreach ($options as $option) {
+            $hasIcon  = $option[2] !== '';
+            $hasColor = $option[3] !== -1;
+            $values[] = [
+                'Value'       => $option[0],
+                'Caption'     => $option[1],
+                'IconActive'  => $hasIcon,
+                'IconValue'   => $hasIcon ? $option[2] : '',
+                'ColorActive' => $hasColor,
+                'ColorValue'  => $hasColor ? $option[3] : -1
+            ];
+        }
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'OPTIONS'      => json_encode($values)
+        ];
     }
 
     /**
