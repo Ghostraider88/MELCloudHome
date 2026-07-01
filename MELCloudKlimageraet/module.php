@@ -29,6 +29,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
         parent::Create();
 
         $this->RegisterPropertyString('UnitID', '');
+        $this->RegisterAttributeString('Capabilities', '{}');
         $this->RegisterTimer('FlushSetTemperature', 0, 'MELA_FlushSetTemperature($_IPS[\'TARGET\']);');
     }
 
@@ -39,7 +40,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
         // Steuerbare Variablen
         $this->MaintainVariable('Power', $this->Translate('Power'), VARIABLETYPE_BOOLEAN, $this->switchPresentation(), 1, true);
         $this->MaintainVariable('Mode', $this->Translate('Mode'), VARIABLETYPE_INTEGER, $this->modePresentation(), 2, true);
-        $this->MaintainVariable('SetTemperature', $this->Translate('Target temperature'), VARIABLETYPE_FLOAT, $this->temperaturePresentation(), 3, true);
+        [$tempMin, $tempMax] = $this->temperatureRangeForMode($this->GetValue('Mode'));
+        $this->MaintainVariable('SetTemperature', $this->Translate('Target temperature'), VARIABLETYPE_FLOAT, $this->temperaturePresentation($tempMin, $tempMax), 3, true);
         $this->MaintainVariable('FanSpeed', $this->Translate('Fan speed'), VARIABLETYPE_INTEGER, $this->fanSpeedPresentation(), 4, true);
         $this->MaintainVariable('VaneVertical', $this->Translate('Vane vertical'), VARIABLETYPE_INTEGER, $this->vaneVerticalPresentation(), 5, true);
         $this->MaintainVariable('VaneHorizontal', $this->Translate('Vane horizontal'), VARIABLETYPE_INTEGER, $this->vaneHorizontalPresentation(), 6, true);
@@ -121,8 +123,17 @@ class MELCloudKlimageraet extends IPSModuleStrict
         if (array_key_exists('Power', $buffer)) {
             $this->SetValue('Power', (bool) $buffer['Power']);
         }
+        $modeChanged = false;
         if (array_key_exists('OperationMode', $buffer) && $buffer['OperationMode'] !== null) {
             $this->SetValue('Mode', $this->apiToInt(self::MODE_MAP, (string) $buffer['OperationMode'], 0));
+            $modeChanged = true;
+        }
+        if (array_key_exists('Capabilities', $buffer) && is_array($buffer['Capabilities'])) {
+            $this->WriteAttributeString('Capabilities', (string) json_encode($buffer['Capabilities']));
+            $modeChanged = true; // Bereich anhand der (ggf. neuen) Capabilities neu berechnen
+        }
+        if ($modeChanged) {
+            $this->applyTemperatureRange((int) $this->GetValue('Mode'));
         }
         if (array_key_exists('SetTemperature', $buffer) && is_numeric($buffer['SetTemperature'])) {
             $this->SetValue('SetTemperature', (float) $buffer['SetTemperature']);
@@ -184,10 +195,12 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 }
                 $this->control(['operationMode' => $api]);
                 $this->SetValue('Mode', (int) $Value);
+                $this->applyTemperatureRange((int) $Value);
                 break;
 
             case 'SetTemperature':
-                $temp = max(16.0, min(31.0, (float) $Value));
+                [$tempMin, $tempMax] = $this->temperatureRangeForMode((int) $this->GetValue('Mode'));
+                $temp = max($tempMin, min($tempMax, (float) $Value));
                 $this->SetValue('SetTemperature', $temp);
                 $this->SetBuffer('PendingSetTemperature', (string) $temp);
                 $this->SetTimerInterval('FlushSetTemperature', self::TEMPERATURE_DEBOUNCE_MS);
@@ -312,17 +325,61 @@ class MELCloudKlimageraet extends IPSModuleStrict
         ];
     }
 
-    private function temperaturePresentation(): array
+    private function temperaturePresentation(float $min = 16, float $max = 31): array
     {
         return [
             'PRESENTATION' => VARIABLE_PRESENTATION_SLIDER,
             'TEMPLATE'     => VARIABLE_TEMPLATE_SLIDER_ROOM_TEMPERATURE,
-            'MIN'          => 16,
-            'MAX'          => 31,
+            'MIN'          => $min,
+            'MAX'          => $max,
             'STEP_SIZE'    => 0.5,
             'SUFFIX'       => ' °C',
             'DIGITS'       => 1
         ];
+    }
+
+    /**
+     * Liefert den vom Gerät unterstützten Solltemperatur-Bereich für einen Betriebsmodus.
+     * Datenquelle: das `capabilities`-Objekt aus der MELCloud-/context-Antwort (z.B.
+     * minTempHeat/maxTempHeat), das die Connection-Instanz mitsendet. Ohne bekannte
+     * Capabilities (z.B. direkt nach dem Anlegen) gilt der bisherige Standardbereich.
+     *
+     * @return array{0:float,1:float} [Min, Max]
+     */
+    private function temperatureRangeForMode(int $mode): array
+    {
+        $caps = json_decode($this->ReadAttributeString('Capabilities'), true);
+        if (!is_array($caps)) {
+            $caps = [];
+        }
+
+        switch ($mode) {
+            case 1: // Heat
+                $min = $caps['minTempHeat'] ?? 16;
+                $max = $caps['maxTempHeat'] ?? 31;
+                break;
+            case 2: // Cool
+            case 3: // Dry
+                $min = $caps['minTempCoolDry'] ?? 16;
+                $max = $caps['maxTempCoolDry'] ?? 31;
+                break;
+            case 0: // Automatic
+            default:
+                $min = $caps['minTempAutomatic'] ?? 16;
+                $max = $caps['maxTempAutomatic'] ?? 31;
+                break;
+        }
+
+        return [(float) $min, (float) $max];
+    }
+
+    /**
+     * Aktualisiert MIN/MAX des Solltemperatur-Schiebereglers für den aktuellen Modus.
+     */
+    private function applyTemperatureRange(int $mode): void
+    {
+        [$min, $max] = $this->temperatureRangeForMode($mode);
+        IPS_SetVariableCustomPresentation($this->GetIDForIdent('SetTemperature'), $this->temperaturePresentation($min, $max));
     }
 
     private function modePresentation(): array
