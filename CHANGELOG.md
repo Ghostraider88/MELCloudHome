@@ -1,5 +1,11 @@
 # Changelog
 
+## Build 34 - 2026-07-01
+- Configurator: Zeigte nach der automatischen Verbindung mit der Connection-Instanz teils
+  dauerhaft „Keine Verbindung zum Splitter", obwohl die Verbindung tatsächlich bestand
+  (sichtbar erst nach manuellem „Gateway ändern"). Der Verbindungsstatus wird jetzt auch
+  beim Öffnen der Konfigurationsseite neu geprüft.
+
 ## Build 33 - 2026-07-01
 - Repository: Doppelt vorhandenes Entwickler-Testskript (`docs/test_melcloud_login.php`)
   entfernt (liegt nur noch in `.tools/`).

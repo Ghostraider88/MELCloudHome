@@ -21,13 +21,27 @@ class MELCloudConfigurator extends IPSModuleStrict
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
+        $this->updateConnectionStatus();
+    }
 
+    /**
+     * Die automatische Verbindung zu einem kompatiblen Gateway (Connection-Instanz) wird
+     * von Symcon teils erst NACH ApplyChanges() hergestellt (z.B. direkt beim Anlegen der
+     * Instanz). Ohne erneute Prüfung bliebe der Status auf "Keine Verbindung zum Splitter"
+     * stehen, bis der Nutzer die Verbindung manuell bestätigt. Da die Konfigurationsseite
+     * ohnehin geöffnet werden muss, um Geräte anzulegen, wird der Status hier zusätzlich
+     * aktualisiert.
+     */
+    private function updateConnectionStatus(): void
+    {
         $parentID = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         $this->SetStatus($parentID !== 0 ? 102 : 104);
     }
 
     public function GetConfigurationForm(): string
     {
+        $this->updateConnectionStatus();
+
         $form = json_decode((string) file_get_contents(__DIR__ . '/form.json'), true);
 
         $values = [];

@@ -1,3 +1,8 @@
+1.0 build 34
+korrigiert:
+- Configurator zeigte teils dauerhaft "Keine Verbindung zum Splitter", obwohl die
+  Verbindung bestand. Status wird jetzt auch beim Öffnen der Konfigurationsseite geprüft.
+
 1.0 build 33
 geändert:
 - Dokumentation überarbeitet (README je Modul auf aktuellen Stand gebracht).
@@ -93,12 +98,5 @@ korrigiert:
 korrigiert:
 - Icons für Betriebsmodus und Betriebsstatus korrigiert.
 - Schnelle, aufeinanderfolgende Solltemperatur-Änderungen werden entkoppelt.
-
-1.0 build 12
-neu:
-- Aufzählungs-Buttons (Modus, Lüfter, Lamellen) zeigen jetzt Beschriftung und Icon.
-
-korrigiert:
-- Betriebsstatus auf Wertedarstellung umgestellt.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.
