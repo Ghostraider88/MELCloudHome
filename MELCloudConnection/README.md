@@ -8,7 +8,8 @@ für die Klimageräte dient.
 - Anmeldung über OAuth 2.0 Authorization Code + PKCE (AWS-Cognito-Federated-Login),
   Speicherung und Erneuerung der Tokens.
 - Zyklisches Polling des Gerätestatus über `GET /context` und Verteilung an die Kinder.
-- Zyklisches Polling der Energiedaten über die Telemetrie-Endpunkte (längeres Intervall).
+- Zyklisches Polling von Energieverbrauch und Außentemperatur über die Telemetrie-/
+  Report-Endpunkte (längeres Intervall).
 - Entgegennahme von Steuerbefehlen der Kinder und Versand als `PUT /monitor/ataunit/{id}`.
 - Konfigurator zum Anlegen der Klimageräte-Instanzen.
 
@@ -33,4 +34,10 @@ für die Klimageräte dient.
 ## Aktionen
 
 - **Login testen** – prüft die Zugangsdaten und zeigt die Anzahl gefundener Klimageräte.
+- **Alle Daten abrufen** – löst einmalig einen sofortigen Status- und Energie-/
+  Außentemperatur-Abruf für alle angelegten Geräte aus (nützlich zum Testen der Einrichtung).
+- **API-Diagnose ausführen** – ruft `/context`, den Energie- und den Trendsummary-Endpunkt für
+  ein Beispielgerät ab, loggt die vollständigen Rohantworten ins Debug und meldet, welche von
+  der Cloud gelieferten Felder aktuell nicht ausgewertet werden. Gedacht, um neue oder
+  übersehene API-Felder zu finden.
 - **Konfigurator** – listet die Geräte des Kontos und legt daraus Geräte-Instanzen an.

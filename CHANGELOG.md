@@ -1,5 +1,12 @@
 # Changelog
 
+## Build 33 - 2026-07-01
+- Repository: Doppelt vorhandenes Entwickler-Testskript (`docs/test_melcloud_login.php`)
+  entfernt (liegt nur noch in `.tools/`).
+- Doku: `MELCloud Connection`- und `MELCloud Klimagerät`-README auf den aktuellen Stand
+  gebracht (Außentemperatur, neue Testknöpfe, moderne Variable Presentations statt
+  veralteter Legacy-Profile, dynamischer Solltemperatur-Bereich).
+
 ## Build 32 - 2026-07-01
 - Klimagerät: Solltemperatur-Bereich wird jetzt pro Betriebsmodus dynamisch aus den
   Geräte-`capabilities` der Cloud übernommen (z. B. Heizen bis 10 °C statt fix 16 °C, falls
