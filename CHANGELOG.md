@@ -1,5 +1,12 @@
 # Changelog
 
+## Build 30 - 2026-07-01
+- Connection: Neuer Testknopf **„API-Diagnose ausführen"**. Ruft `/context`, den
+  Energie-Telemetrie- und den Trendsummary-Endpunkt für ein Beispielgerät ab, loggt die
+  vollständigen Rohantworten ins Debug und meldet per Popup zusammengefasst, welche von der
+  Cloud gelieferten Felder aktuell nicht ausgewertet werden (z. B. neue Settings, weitere
+  Telemetrie-Kennzahlen oder nicht unterstützte Gerätearten wie Wärmepumpen im selben Konto).
+
 ## Build 29 - 2026-07-01
 - Klimagerät: Alle Statusvariablen (Power, Vane vertikal/horizontal, Raumtemperatur,
   Außentemperatur, Verbunden, Störung, WLAN-Signal, Energieverbrauch) auf die exakte

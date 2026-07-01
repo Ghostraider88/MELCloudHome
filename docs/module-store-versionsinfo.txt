@@ -1,3 +1,8 @@
+1.0 build 30
+neu:
+- Testknopf "API-Diagnose ausführen" im Connection-Modul: prüft /context, Energie- und
+  Trendsummary-Endpunkt auf ungenutzte Felder und meldet das Ergebnis als Übersicht.
+
 1.0 build 29
 korrigiert:
 - Alle Statusvariablen (Power, Vane vertikal/horizontal, Raumtemperatur, Außentemperatur,
@@ -97,15 +102,5 @@ korrigiert:
 1.0 build 8
 korrigiert:
 - Verzeichnis tools/ in .tools/ umbenannt (behebt fälschliche Modul-Fehlermeldung).
-
-1.0 build 7
-korrigiert:
-- Steuer-Endpoint korrigiert.
-- Fehlende Parameter bei der Energie-Telemetrie-Abfrage ergänzt.
-
-1.0 build 6
-korrigiert:
-- Schreibpfad für Steuerbefehle repariert.
-- Status-Poll-Intervall verkürzt.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.
