@@ -1,0 +1,134 @@
+1.0 build 29
+korrigiert:
+- Alle Statusvariablen (Power, Vane vertikal/horizontal, Raumtemperatur, Außentemperatur,
+  Verbunden, Störung, WLAN-Signal, Energieverbrauch) zeigen jetzt Icons, Farben und
+  Einheiten exakt wie in der manuellen Symcon-Konfiguration.
+
+1.0 build 28
+korrigiert:
+- Fehlende Einheiten (kWh, °C) bei Energieverbrauch und Außentemperatur behoben.
+
+1.0 build 27
+korrigiert:
+- Verbleibende Legacy-Variablenprofile (Verbunden, WLAN-Signal, Energieverbrauch) durch
+  Variable Presentations ersetzt.
+
+1.0 build 26
+korrigiert:
+- Außentemperatur-Abruf korrigiert (listenverpackte Cloud-Antwort wird jetzt richtig
+  ausgepackt).
+
+1.0 build 25
+neu:
+- Testknopf "Alle Daten abrufen" im Connection-Modul (ruft Status und Energie inkl.
+  Außentemperatur für alle Geräte ab).
+
+1.0 build 24
+korrigiert:
+- Temperaturverlauf (Farbverlauf) am Solltemperatur-Schieberegler wiederhergestellt.
+
+1.0 build 23
+korrigiert:
+- Legacy-Profil an der Raumtemperatur durch moderne Variable Presentation ersetzt.
+
+1.0 build 22
+korrigiert:
+- Solltemperatur-Schieberegler nach fehlgeschlagenem Zwischenschritt wieder repariert.
+
+1.0 build 21
+neu:
+- Außentemperatur-Statusvariable ergänzt.
+
+1.0 build 20
+korrigiert:
+- Zulässiger Bereich der Solltemperatur auf 16-31 °C korrigiert.
+
+1.0 build 19
+neu:
+- Eigene Wertedarstellung für die Störungsvariable (anpassbare Beschriftung statt
+  "OK"/"Alarm").
+
+1.0 build 18
+geändert:
+- Modulstore-Veröffentlichung vorbereitet.
+
+1.0 build 17
+korrigiert:
+- Betriebsstatus zeigt Beschriftung und Icon statt Rohwert.
+
+1.0 build 16
+korrigiert:
+- Betriebsstatus-Darstellung angepasst (Zwischenschritt).
+
+1.0 build 15
+korrigiert:
+- WLAN-Signal- und Energiedaten-Quelle korrigiert.
+
+1.0 build 14
+korrigiert:
+- Wertedarstellungs-Schema für Betriebsstatus korrigiert, Debug-Logging für WLAN-Signal
+  und Energieverbrauch ergänzt.
+
+1.0 build 13
+korrigiert:
+- Icons für Betriebsmodus und Betriebsstatus korrigiert.
+- Schnelle, aufeinanderfolgende Solltemperatur-Änderungen werden entkoppelt.
+
+1.0 build 12
+neu:
+- Aufzählungs-Buttons (Modus, Lüfter, Lamellen) zeigen jetzt Beschriftung und Icon.
+
+korrigiert:
+- Betriebsstatus auf Wertedarstellung umgestellt.
+
+1.0 build 11
+korrigiert:
+- Schema der Aufzählungsoptionen korrigiert.
+- Anzeige aktualisiert sich nach dem Anlegen eines Geräts automatisch.
+
+1.0 build 10
+geändert:
+- Polling-Intervalle angepasst (Status 60 s, Energie 30 min).
+
+1.0 build 9
+korrigiert:
+- Alte, instanzübergreifende Custom-Variablenprofile durch Variable Presentations ersetzt.
+
+1.0 build 8
+korrigiert:
+- Verzeichnis tools/ in .tools/ umbenannt (behebt fälschliche Modul-Fehlermeldung).
+
+1.0 build 7
+korrigiert:
+- Steuer-Endpoint korrigiert.
+- Fehlende Parameter bei der Energie-Telemetrie-Abfrage ergänzt.
+
+1.0 build 6
+korrigiert:
+- Schreibpfad für Steuerbefehle repariert.
+- Status-Poll-Intervall verkürzt.
+
+1.0 build 5
+neu:
+- Konfigurator als eigenständiges Modul eingeführt.
+
+korrigiert:
+- DataFlow-Verkabelung zwischen Connection, Configurator und Klimagerät korrigiert.
+
+1.0 build 4
+korrigiert:
+- Splitter/Device-Verbindung repariert (DataFlow-GUIDs).
+
+1.0 build 3
+korrigiert:
+- Splitter/Device-Verbindung repariert (einheitliche DataFlow-GUID).
+
+1.0 build 2
+korrigiert:
+- Login-Ablauf korrigiert.
+- Legacy-Profil ~Connect durch ~Switch ersetzt.
+
+1.0 build 1
+neu:
+- Erste lauffähige Version: Anmeldung (OAuth 2.0 + PKCE), Status-Polling, Steuerung der
+  Kernfunktionen (Power, Modus, Solltemperatur, Lüfter, Lamellen).
