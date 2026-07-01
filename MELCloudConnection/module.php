@@ -97,7 +97,7 @@ class MELCloudConnection extends IPSModuleStrict
         $this->chunkedDebug('DiagnoseApi/context', (string) json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
         // Felder, die normalizeUnit() bereits auswertet
-        $usedUnitKeys    = ['id', 'givenDisplayName', 'displayName', 'rssi', 'settings', 'isConnected'];
+        $usedUnitKeys    = ['id', 'givenDisplayName', 'displayName', 'rssi', 'settings', 'isConnected', 'capabilities'];
         $usedSettingKeys = ['Power', 'OperationMode', 'SetTemperature', 'RoomTemperature', 'SetFanSpeed', 'ActualFanSpeed', 'VaneVerticalDirection', 'VaneHorizontalDirection', 'InStandbyMode', 'IsInError'];
 
         $unusedUnitKeys    = [];
@@ -423,6 +423,18 @@ class MELCloudConnection extends IPSModuleStrict
 
         $power = isset($settings['Power']) ? strtolower((string) $settings['Power']) !== 'false' : false;
 
+        // Pro Modus unterschiedlicher Solltemperatur-Bereich (z. B. Heizen bis 10 °C
+        // möglich, Kühlen/Trocknen/Automatik meist erst ab 16 °C) – aus capabilities.
+        $capabilities = $unit['capabilities'] ?? [];
+        $tempCapabilities = [
+            'minTempCoolDry'   => $capabilities['minTempCoolDry'] ?? null,
+            'maxTempCoolDry'   => $capabilities['maxTempCoolDry'] ?? null,
+            'minTempHeat'      => $capabilities['minTempHeat'] ?? null,
+            'maxTempHeat'      => $capabilities['maxTempHeat'] ?? null,
+            'minTempAutomatic' => $capabilities['minTempAutomatic'] ?? null,
+            'maxTempAutomatic' => $capabilities['maxTempAutomatic'] ?? null
+        ];
+
         return [
             'UnitID'                  => (string) $unitID,
             'Name'                    => $unit['givenDisplayName'] ?? $unit['displayName'] ?? (string) $unitID,
@@ -441,7 +453,8 @@ class MELCloudConnection extends IPSModuleStrict
             // isConnected liegt ebenfalls auf Geräte-Ebene (bool); fällt das Gerät aus der
             // Cloud-Antwort weg, wird es in extractDevices() ohnehin nicht mehr gemeldet –
             // hier geht es um den tatsächlichen WLAN-/Cloud-Verbindungsstatus des Geräts.
-            'Connected'               => !isset($unit['isConnected']) || (bool) $unit['isConnected']
+            'Connected'               => !isset($unit['isConnected']) || (bool) $unit['isConnected'],
+            'Capabilities'            => $tempCapabilities
         ];
     }
 

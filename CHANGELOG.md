@@ -1,5 +1,11 @@
 # Changelog
 
+## Build 32 - 2026-07-01
+- Klimagerät: Solltemperatur-Bereich wird jetzt pro Betriebsmodus dynamisch aus den
+  Geräte-`capabilities` der Cloud übernommen (z. B. Heizen bis 10 °C statt fix 16 °C, falls
+  vom Gerät unterstützt), statt fest auf 16–31 °C begrenzt zu sein. Wird beim Moduswechsel
+  sofort und bei jedem Status-Update aktualisiert.
+
 ## Build 31 - 2026-07-01
 - Klimagerät: `Verbunden` folgt jetzt dem echten `isConnected`-Feld der Cloud statt fest auf
   „verbunden" zu stehen. Ausgewertet mit der API-Diagnose aus Build 30.

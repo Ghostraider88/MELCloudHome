@@ -1,3 +1,8 @@
+1.0 build 32
+neu:
+- Solltemperatur-Bereich wird jetzt je Betriebsmodus dynamisch vom Gerät übernommen (z.B.
+  Heizen bis 10 °C statt fix 16 °C, falls unterstützt).
+
 1.0 build 31
 korrigiert:
 - Verbunden folgt jetzt dem echten Verbindungsstatus des Geräts statt fest "verbunden"
@@ -96,13 +101,5 @@ korrigiert:
 korrigiert:
 - Schema der Aufzählungsoptionen korrigiert.
 - Anzeige aktualisiert sich nach dem Anlegen eines Geräts automatisch.
-
-1.0 build 10
-geändert:
-- Polling-Intervalle angepasst (Status 60 s, Energie 30 min).
-
-1.0 build 9
-korrigiert:
-- Alte, instanzübergreifende Custom-Variablenprofile durch Variable Presentations ersetzt.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.
