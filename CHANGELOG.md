@@ -1,5 +1,11 @@
 # Changelog
 
+## Build 31 - 2026-07-01
+- Klimagerät: `Verbunden` folgt jetzt dem echten `isConnected`-Feld der Cloud statt fest auf
+  „verbunden" zu stehen. Ausgewertet mit der API-Diagnose aus Build 30.
+- Connection: API-Diagnose zeigt Energie-Telemetrie-Kennzahlen jetzt korrekt an (falsches
+  Feld `measure` statt `type` abgefragt).
+
 ## Build 30 - 2026-07-01
 - Connection: Neuer Testknopf **„API-Diagnose ausführen"**. Ruft `/context`, den
   Energie-Telemetrie- und den Trendsummary-Endpunkt für ein Beispielgerät ab, loggt die

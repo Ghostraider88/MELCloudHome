@@ -97,7 +97,7 @@ class MELCloudConnection extends IPSModuleStrict
         $this->chunkedDebug('DiagnoseApi/context', (string) json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
         // Felder, die normalizeUnit() bereits auswertet
-        $usedUnitKeys    = ['id', 'givenDisplayName', 'displayName', 'rssi', 'settings'];
+        $usedUnitKeys    = ['id', 'givenDisplayName', 'displayName', 'rssi', 'settings', 'isConnected'];
         $usedSettingKeys = ['Power', 'OperationMode', 'SetTemperature', 'RoomTemperature', 'SetFanSpeed', 'ActualFanSpeed', 'VaneVerticalDirection', 'VaneHorizontalDirection', 'InStandbyMode', 'IsInError'];
 
         $unusedUnitKeys    = [];
@@ -146,8 +146,8 @@ class MELCloudConnection extends IPSModuleStrict
                 $this->chunkedDebug('DiagnoseApi/energy', $response);
                 $data = json_decode($response, true);
                 foreach ($data['measureData'] ?? [] as $measure) {
-                    if (isset($measure['measure'])) {
-                        $energyLabels[] = (string) $measure['measure'];
+                    if (isset($measure['type'])) {
+                        $energyLabels[] = (string) $measure['type'];
                     }
                 }
             } catch (Exception $e) {
@@ -438,7 +438,10 @@ class MELCloudConnection extends IPSModuleStrict
             // rssi liegt auf Geräte-Ebene, nicht im settings-Array (bestätigt über
             // andrew-blake/melcloudhome: AirToAirUnit.rssi <- data.get("rssi")).
             'rssi'                    => isset($unit['rssi']) ? (int) $unit['rssi'] : null,
-            'Connected'               => true
+            // isConnected liegt ebenfalls auf Geräte-Ebene (bool); fällt das Gerät aus der
+            // Cloud-Antwort weg, wird es in extractDevices() ohnehin nicht mehr gemeldet –
+            // hier geht es um den tatsächlichen WLAN-/Cloud-Verbindungsstatus des Geräts.
+            'Connected'               => !isset($unit['isConnected']) || (bool) $unit['isConnected']
         ];
     }
 

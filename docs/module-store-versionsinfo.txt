@@ -1,3 +1,9 @@
+1.0 build 31
+korrigiert:
+- Verbunden folgt jetzt dem echten Verbindungsstatus des Geräts statt fest "verbunden"
+  anzuzeigen.
+- API-Diagnose zeigt Energie-Telemetrie-Kennzahlen jetzt korrekt an.
+
 1.0 build 30
 neu:
 - Testknopf "API-Diagnose ausführen" im Connection-Modul: prüft /context, Energie- und
@@ -98,9 +104,5 @@ geändert:
 1.0 build 9
 korrigiert:
 - Alte, instanzübergreifende Custom-Variablenprofile durch Variable Presentations ersetzt.
-
-1.0 build 8
-korrigiert:
-- Verzeichnis tools/ in .tools/ umbenannt (behebt fälschliche Modul-Fehlermeldung).
 
 Ältere Historie: siehe CHANGELOG.md im Repository.
