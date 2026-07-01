@@ -335,7 +335,38 @@ markiert wird.
 
 ---
 
-## 12. Quellen (offiziell)
+## 12. Changelog-Pflege (verbindlich)
+
+Jede Änderung an dieser Bibliothek – Bugfix, neues Feature, Refactoring, auch kleine
+Korrekturen – **muss** im `CHANGELOG.md` in der Wurzel des Repositories dokumentiert werden.
+Kein Commit, der `library.json`/`build` erhöht, ohne einen passenden Changelog-Eintrag.
+
+**Format** (an [bumaas/SymconHomeAssistant](https://github.com/bumaas/SymconHomeAssistant)
+angelehnt):
+
+```markdown
+## Build <N> - <YYYY-MM-DD>
+- <Kurze, konkrete Beschreibung der Änderung aus Nutzersicht, ggf. mit betroffenem Modul
+  als Präfix, z.B. "Klimagerät: ..." oder "Connection: ...">
+- <weiterer Punkt>
+```
+
+**Regeln:**
+- Neuester Build immer **oben** (absteigend sortiert).
+- Datum = Datum des Commits, der den Build erhöht (`YYYY-MM-DD`).
+- Build-Nummer muss exakt der in `library.json` gesetzten `build`-Zahl entsprechen.
+- Beschreibung so schreiben, dass sie ohne Kenntnis der internen Diskussion verständlich ist
+  (kein "wie besprochen", keine internen Debug-Details) – was hat sich für den Nutzer
+  geändert, nicht wie der Code das intern löst.
+- Reine interne Aufräumarbeiten ohne Nutzerauswirkung (z.B. Testdateien, CI-Konfiguration)
+  können knapp erwähnt werden, müssen aber nicht mit derselben Ausführlichkeit wie
+  funktionale Änderungen beschrieben werden.
+- **Vor jedem Push/PR prüfen:** Wurde `library.json` → `build` erhöht? Dann muss
+  `CHANGELOG.md` einen neuen Eintrag für genau diesen Build enthalten.
+
+---
+
+## 13. Quellen (offiziell)
 
 - SDK (PHP): https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/
 - Struktur: …/sdk-php/struktur/
