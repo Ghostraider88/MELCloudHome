@@ -36,7 +36,8 @@
             "Ventilating": "Lüften",
             "No fault": "Keine Störung",
             "Fault": "Störung",
-            "Outdoor temperature": "Außentemperatur"
+            "Outdoor temperature": "Außentemperatur",
+            "Disconnected": "Getrennt"
         },
         "en": {
             "Geräte-ID (MELCloud)": "Device ID (MELCloud)",

@@ -45,16 +45,16 @@ class MELCloudKlimageraet extends IPSModuleStrict
         $this->MaintainVariable('VaneHorizontal', $this->Translate('Vane horizontal'), VARIABLETYPE_INTEGER, $this->vaneHorizontalPresentation(), 6, true);
 
         // Reine Anzeige-Variablen
-        $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_TEMPLATE_VALUE_PRESENTATION_ROOM_TEMPERATURE], 7, true);
+        $this->MaintainVariable('RoomTemperature', $this->Translate('Room temperature'), VARIABLETYPE_FLOAT, $this->numericValuePresentation('temperature-low', ' °C', 1, 1), 7, true);
         $this->MaintainVariable('OperatingStatus', $this->Translate('Operating status'), VARIABLETYPE_STRING, $this->statusPresentation(), 8, true);
 
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
         $this->removeLegacyProfiles();
-        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH], 9, true);
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, $this->connectedPresentation(), 9, true);
         $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
-        $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_INPUT, 'SUFFIX' => ' dBm', 'DIGITS' => 0], 11, true);
-        $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_INPUT, 'SUFFIX' => ' kWh', 'DIGITS' => 2], 12, true);
-        $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_INPUT, 'SUFFIX' => ' °C', 'DIGITS' => 1], 13, true);
+        $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, $this->numericValuePresentation('signal-stream', ' dbm', 0), 11, true);
+        $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, $this->numericValuePresentation('plug-circle-bolt', ' kWh', 2), 12, true);
+        $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, $this->numericValuePresentation('temperature-low', ' °C', 1), 13, true);
 
         // Aktionen für steuerbare Variablen aktivieren
         foreach (['Power', 'Mode', 'SetTemperature', 'FanSpeed', 'VaneVertical', 'VaneHorizontal'] as $ident) {
@@ -301,7 +301,15 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     private function switchPresentation(): array
     {
-        return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH];
+        return [
+            'PRESENTATION'   => VARIABLE_PRESENTATION_SWITCH,
+            'ICON_FALSE'     => 'power-off',
+            'ICON_TRUE'      => 'power-off',
+            'USE_ICON_FALSE' => false,
+            'GLOW_COLOR'     => 16771899,
+            'GLOW_INTENSITY' => 50,
+            'USAGE_TYPE'     => 0
+        ];
     }
 
     private function temperaturePresentation(): array
@@ -350,7 +358,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [4, '4', '', -1],
             [5, '5', '', -1],
             [7, $this->Translate('Swing'), '', -1]
-        ]);
+        ], 'arrow-down-from-bracket');
     }
 
     private function vaneHorizontalPresentation(): array
@@ -363,7 +371,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
             [4, $this->Translate('Right-Centre'), '', -1],
             [5, $this->Translate('Right'), '', -1],
             [7, $this->Translate('Swing'), '', -1]
-        ]);
+        ], 'arrow-right-to-bracket');
     }
 
     /**
@@ -394,15 +402,26 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private function errorPresentation(): array
     {
         return $this->valuePresentation([
-            [false, $this->Translate('No fault'), '', -1],
+            [false, $this->Translate('No fault'), 'play', -1],
             [true, $this->Translate('Fault'), 'triangle-exclamation', 0xFF0000]
         ]);
     }
 
     /**
+     * Wertedarstellung für den Verbindungsstatus (ersetzt den einfachen Schalter).
+     */
+    private function connectedPresentation(): array
+    {
+        return $this->valuePresentation([
+            [false, $this->Translate('Disconnected'), 'wifi-slash', 16077123],
+            [true, $this->Translate('Connected'), 'wifi', 1692672]
+        ], 'wifi');
+    }
+
+    /**
      * @param array<int,array{0:bool|string,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
-    private function valuePresentation(array $options): array
+    private function valuePresentation(array $options, string $icon = ''): array
     {
         $values = [];
         foreach ($options as $option) {
@@ -418,8 +437,37 @@ class MELCloudKlimageraet extends IPSModuleStrict
             ];
         }
         return [
-            'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
-            'OPTIONS'      => json_encode($values)
+            'PRESENTATION'  => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'ICON'          => $icon,
+            'COLOR'         => -1,
+            'CONTENT_COLOR' => -1,
+            'DISPLAY_TYPE'  => 0,
+            'PREVIEW_STYLE' => 1,
+            'SHOW_PREVIEW'  => true,
+            'OPTIONS'       => json_encode($values)
+        ];
+    }
+
+    /**
+     * Wertedarstellung für rein numerische Anzeige-Variablen (Temperatur, Energie, WLAN-Signal).
+     */
+    private function numericValuePresentation(string $icon, string $suffix, int $digits, int $usageType = 0): array
+    {
+        return [
+            'PRESENTATION'  => VARIABLE_PRESENTATION_VALUE_PRESENTATION,
+            'ICON'          => $icon,
+            'COLOR'         => -1,
+            'CONTENT_COLOR' => -1,
+            'DISPLAY_TYPE'  => 0,
+            'DIGITS'        => $digits,
+            'MIN'           => 0,
+            'MAX'           => 100,
+            'PERCENTAGE'    => false,
+            'PREFIX'        => '',
+            'SUFFIX'        => $suffix,
+            'PREVIEW_STYLE' => 1,
+            'SHOW_PREVIEW'  => true,
+            'USAGE_TYPE'    => $usageType
         ];
     }
 
@@ -436,12 +484,13 @@ class MELCloudKlimageraet extends IPSModuleStrict
      *
      * @param array<int,array{0:int,1:string,2:string,3:int}> $options Je Eintrag: Value, Caption, Icon, Color
      */
-    private function enumerationPresentation(array $options): array
+    private function enumerationPresentation(array $options, string $icon = ''): array
     {
         $values = $this->buildOptionValues($options);
         return [
             'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
             'OPTIONS'      => json_encode($values),
+            'ICON'         => $icon,
             'LAYOUT'       => 1, // Row
             'DISPLAY'      => 2  // Caption and Icon
         ];
