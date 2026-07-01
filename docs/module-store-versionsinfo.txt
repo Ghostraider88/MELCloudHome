@@ -1,3 +1,7 @@
+1.0 build 33
+geändert:
+- Dokumentation überarbeitet (README je Modul auf aktuellen Stand gebracht).
+
 1.0 build 32
 neu:
 - Solltemperatur-Bereich wird jetzt je Betriebsmodus dynamisch vom Gerät übernommen (z.B.
@@ -96,10 +100,5 @@ neu:
 
 korrigiert:
 - Betriebsstatus auf Wertedarstellung umgestellt.
-
-1.0 build 11
-korrigiert:
-- Schema der Aufzählungsoptionen korrigiert.
-- Anzeige aktualisiert sich nach dem Anlegen eines Geräts automatisch.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.

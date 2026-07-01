@@ -6,34 +6,34 @@ die passende Geräte-ID.
 
 ## Variablen
 
+Alle Variablen nutzen moderne IP-Symcon Variable Presentations (Icons, Farben, Einheiten)
+statt klassischer Variablenprofile.
+
 ### Steuerbar
 | Variable | Darstellung | Beschreibung |
 |----------|-------------|--------------|
-| Zustand | Schalter (Enumeration) | Gerät ein-/ausschalten |
-| Betriebsmodus | Enumeration | Heizen, Kühlen, Automatik, Entfeuchten, Lüften |
-| Solltemperatur | Schieberegler | 16–31 °C in 0,5-Schritten |
-| Lüftergeschwindigkeit | Enumeration | Auto, 1–5 |
-| Lamelle vertikal | Enumeration | Auto, 1–5, Schwenken |
-| Lamelle horizontal | Enumeration | Auto, Links … Rechts, Schwenken |
+| Zustand | Schalter | Gerät ein-/ausschalten |
+| Betriebsmodus | Aufzählung | Automatik, Heizen, Kühlen, Entfeuchten, Lüften |
+| Solltemperatur | Schieberegler mit Temperaturverlauf | Bereich abhängig vom Betriebsmodus und Gerät (typ. 16–31 °C, im Heizmodus je nach Gerät auch niedriger), 0,5 °C-Schritte |
+| Lüftergeschwindigkeit | Aufzählung | Automatik, 1–5 |
+| Lamelle vertikal | Aufzählung | Automatik, 1–5, Schwenken |
+| Lamelle horizontal | Aufzählung | Automatik, Links … Rechts, Schwenken |
 
 ### Anzeige
 | Variable | Darstellung | Beschreibung |
 |----------|-------------|--------------|
-| Raumtemperatur | ~Temperature | aktuelle Raumtemperatur |
-| Status | Wertedarstellung | abgeleitet (Aus/Leerlauf/Heizen/Kühlen/…) |
-| Verbunden | ~Switch | Gerät online |
+| Raumtemperatur | Wertedarstellung | aktuelle Raumtemperatur |
+| Außentemperatur | Wertedarstellung | Außentemperatur (nur bei Geräten mit Außensensor) |
+| Status | Wertedarstellung | abgeleitet (Aus/Leerlauf/Heizen/Kühlen/Entfeuchten/Lüften/Automatik) |
+| Verbunden | Wertedarstellung | echter Cloud-/WLAN-Verbindungsstatus des Geräts |
 | Störung | Wertedarstellung | Fehlerzustand des Geräts |
-| WLAN-Signal | MELCloud.RSSI | Signalstärke in dBm |
-| Energieverbrauch | ~Electricity | kumulierter Verbrauch in kWh |
-| Außentemperatur | ~Temperature | Außentemperatur (nur bei Geräten mit Außensensor) |
+| WLAN-Signal | Wertedarstellung | Signalstärke in dBm |
+| Energieverbrauch | Wertedarstellung | kumulierter Verbrauch in kWh (letzte 24h, stündlich) |
 
 ## Hinweise
 
 - Schaltvorgänge werden optimistisch sofort gesetzt und beim nächsten Status-Poll bestätigt.
 - Empfangene Daten werden über einen Empfangsfilter auf die eigene Geräte-ID begrenzt.
-- Zustand, Betriebsmodus, Solltemperatur, Lüftergeschwindigkeit und Lamellen nutzen die neuen
-  IP-Symcon Variable-Presentations (`IPS_SetVariableCustomPresentation`/`SetVariablePresentation`
-  via `MaintainVariable`) statt der alten, instanzübergreifenden Custom-Variablenprofile. Beim
-  ersten Update nach diesem Wechsel werden die alten Profile (`MELCloud.Mode`, `MELCloud.FanSpeed`,
-  `MELCloud.VaneVertical`, `MELCloud.VaneHorizontal`, `MELCloud.Status`, `MELCloud.Temperature`)
-  automatisch entfernt, sobald keine Instanz mehr darauf verweist.
+- Der Bereich der Solltemperatur wird beim Moduswechsel automatisch anhand der vom Gerät
+  gemeldeten Fähigkeiten (`capabilities` aus der Cloud-Antwort) angepasst – z. B. erlauben
+  manche Geräte im Heizmodus niedrigere Werte als im Kühl-/Trocken-/Automatikmodus.
