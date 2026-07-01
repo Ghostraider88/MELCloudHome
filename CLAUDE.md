@@ -364,6 +364,39 @@ angelehnt):
 - **Vor jedem Push/PR prüfen:** Wurde `library.json` → `build` erhöht? Dann muss
   `CHANGELOG.md` einen neuen Eintrag für genau diesen Build enthalten.
 
+### 12.1 Zusätzlich: Versionsinformationen für den Module Store
+
+Der IP-Symcon Module Store zeigt unter „Versionsinformationen" einen eigenen, reinen
+Klartext-Verlauf (kein Markdown), den der Nutzer manuell copy-paste-fähig braucht. Dieser
+Text wird parallel zum `CHANGELOG.md`-Eintrag gepflegt in:
+
+```
+docs/module-store-versionsinfo.txt
+```
+
+**Format** (exakt wie im Symcon Module Store, neuester Build oben):
+
+```
+<version> build <N>
+neu:
+- <Punkt>
+
+korrigiert:
+- <Punkt>
+
+geändert:
+- <Punkt>
+```
+
+- `<version>` = `version` aus `library.json` (aktuell `1.0`), `<N>` = `build`-Nummer.
+- Nur die tatsächlich zutreffenden Kategorien (`neu`/`korrigiert`/`geändert`) angeben,
+  leere Kategorien weglassen.
+- Kein Datum, keine Markdown-Formatierung (`#`, `**`, Links) – reiner Klartext, wie ihn der
+  Nutzer 1:1 in das Store-Formularfeld einfügt.
+- **Bei jeder Build-Erhöhung**: neuen Block ganz oben in `docs/module-store-versionsinfo.txt`
+  einfügen UND den neuen Block zusätzlich im Chat an den Nutzer ausgeben, damit er ihn direkt
+  im Module Store aktualisieren kann.
+
 ---
 
 ## 13. Quellen (offiziell)
