@@ -108,27 +108,4 @@ korrigiert:
 - Schreibpfad für Steuerbefehle repariert.
 - Status-Poll-Intervall verkürzt.
 
-1.0 build 5
-neu:
-- Konfigurator als eigenständiges Modul eingeführt.
-
-korrigiert:
-- DataFlow-Verkabelung zwischen Connection, Configurator und Klimagerät korrigiert.
-
-1.0 build 4
-korrigiert:
-- Splitter/Device-Verbindung repariert (DataFlow-GUIDs).
-
-1.0 build 3
-korrigiert:
-- Splitter/Device-Verbindung repariert (einheitliche DataFlow-GUID).
-
-1.0 build 2
-korrigiert:
-- Login-Ablauf korrigiert.
-- Legacy-Profil ~Connect durch ~Switch ersetzt.
-
-1.0 build 1
-neu:
-- Erste lauffähige Version: Anmeldung (OAuth 2.0 + PKCE), Status-Polling, Steuerung der
-  Kernfunktionen (Power, Modus, Solltemperatur, Lüfter, Lamellen).
+Ältere Historie: siehe CHANGELOG.md im Repository.

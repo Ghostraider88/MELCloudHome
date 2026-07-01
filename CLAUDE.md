@@ -397,6 +397,18 @@ geändert:
   einfügen UND den neuen Block zusätzlich im Chat an den Nutzer ausgeben, damit er ihn direkt
   im Module Store aktualisieren kann.
 
+**3000-Zeichen-Limit des Symcon-Formularfelds:**
+- `docs/module-store-versionsinfo.txt` darf insgesamt **maximal 3000 Zeichen** umfassen
+  (Symcon-Vorgabe für das Feld „Versionsinformationen").
+- Nach dem Einfügen des neuen Builds ganz oben: Dateigröße prüfen (`wc -c`). Überschreitet
+  sie 3000 Zeichen, **ganze Build-Blöcke vom Ende her entfernen** (nie mitten in einem Block
+  kürzen), bis die Datei wieder unter dem Limit liegt.
+- Am Ende der Datei einen kurzen Hinweis belassen: `Ältere Historie: siehe CHANGELOG.md im
+  Repository.` – die vollständige Historie bleibt dort ohnehin erhalten, hier zählt nur, was
+  aktuell ins Store-Feld passt.
+- Im Chat an den Nutzer immer die volle, aktuell gültige Datei ausgeben (nicht nur den neuen
+  Block), damit er sie 1:1 komplett ersetzen kann.
+
 ---
 
 ## 13. Quellen (offiziell)
