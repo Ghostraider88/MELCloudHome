@@ -80,6 +80,124 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /**
+     * Ruft /context, den Energie- und den Trendsummary-Endpunkt für ein Beispielgerät ab,
+     * loggt die vollständigen Rohantworten ins Debug und meldet per Popup zusammengefasst,
+     * welche von der Cloud gelieferten Felder aktuell NICHT ausgewertet werden. Gedacht, um
+     * neue/übersehene API-Felder (z. B. weitere Sensoren, Telemetrie-Kennzahlen) zu finden.
+     */
+    public function DiagnoseApi(): void
+    {
+        try {
+            $context = $this->fetchContext();
+        } catch (Exception $e) {
+            echo $this->Translate('Error') . ': ' . $e->getMessage();
+            return;
+        }
+
+        $this->chunkedDebug('DiagnoseApi/context', (string) json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        // Felder, die normalizeUnit() bereits auswertet
+        $usedUnitKeys    = ['id', 'givenDisplayName', 'displayName', 'rssi', 'settings'];
+        $usedSettingKeys = ['Power', 'OperationMode', 'SetTemperature', 'RoomTemperature', 'SetFanSpeed', 'ActualFanSpeed', 'VaneVerticalDirection', 'VaneHorizontalDirection', 'InStandbyMode', 'IsInError'];
+
+        $unusedUnitKeys    = [];
+        $unusedSettingKeys = [];
+        $otherDeviceLists  = [];
+        $unitCount         = 0;
+
+        foreach ($context['buildings'] ?? [] as $building) {
+            foreach ($building as $key => $value) {
+                if ($key !== 'airToAirUnits' && is_array($value) && $value !== [] && array_is_list($value) && is_array($value[0] ?? null)) {
+                    $otherDeviceLists[$key] = ($otherDeviceLists[$key] ?? 0) + count($value);
+                }
+            }
+            foreach ($building['airToAirUnits'] ?? [] as $unit) {
+                $unitCount++;
+                foreach (array_keys($unit) as $key) {
+                    if (!in_array($key, $usedUnitKeys, true)) {
+                        $unusedUnitKeys[$key] = true;
+                    }
+                }
+                foreach ($unit['settings'] ?? [] as $s) {
+                    $name = $s['name'] ?? null;
+                    if ($name !== null && !in_array($name, $usedSettingKeys, true)) {
+                        $unusedSettingKeys[$name] = true;
+                    }
+                }
+            }
+        }
+
+        // Telemetrie/Trend-Endpunkte stichprobenartig für das erste konfigurierte Gerät prüfen
+        $sampleUnit    = $this->getChildUnitIDs()[0] ?? null;
+        $energyLabels  = [];
+        $trendLabels   = [];
+
+        if ($sampleUnit !== null) {
+            try {
+                $now   = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+                $from  = $now->modify('-1 day');
+                $query = http_build_query([
+                    'from'     => $from->format('Y-m-d H:i'),
+                    'to'       => $now->format('Y-m-d H:i'),
+                    'interval' => 'Hour',
+                    'measure'  => 'cumulative_energy_consumed_since_last_upload'
+                ]);
+                $response = $this->apiRequest('GET', '/telemetry/telemetry/energy/' . rawurlencode($sampleUnit) . '?' . $query);
+                $this->chunkedDebug('DiagnoseApi/energy', $response);
+                $data = json_decode($response, true);
+                foreach ($data['measureData'] ?? [] as $measure) {
+                    if (isset($measure['measure'])) {
+                        $energyLabels[] = (string) $measure['measure'];
+                    }
+                }
+            } catch (Exception $e) {
+                $this->SendDebug('DiagnoseApi/energy', 'Fehler: ' . $e->getMessage(), 0);
+            }
+
+            try {
+                $now   = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+                $from  = $now->modify('-1 day');
+                $query = http_build_query([
+                    'unitId' => $sampleUnit,
+                    'period' => 'Daily',
+                    'from'   => $from->format('Y-m-d\TH:i:s.0000000'),
+                    'to'     => $now->format('Y-m-d\TH:i:s.0000000')
+                ]);
+                $response = $this->apiRequest('GET', '/report/v1/trendsummary?' . $query);
+                $this->chunkedDebug('DiagnoseApi/trendsummary', $response);
+                $data = json_decode($response, true);
+                if (isset($data[0])) {
+                    $data = $data[0];
+                }
+                foreach ($data['datasets'] ?? [] as $dataset) {
+                    $trendLabels[] = (string) ($dataset['label'] ?? '?');
+                }
+            } catch (Exception $e) {
+                $this->SendDebug('DiagnoseApi/trendsummary', 'Fehler: ' . $e->getMessage(), 0);
+            }
+        }
+
+        $summary   = [];
+        $summary[] = $unitCount . ' Klimagerät(e) in /context gefunden.';
+        $summary[] = 'Ungenutzte Felder auf Geräte-Ebene: ' . (empty($unusedUnitKeys) ? '(keine)' : implode(', ', array_keys($unusedUnitKeys)));
+        $summary[] = 'Ungenutzte settings-Felder: ' . (empty($unusedSettingKeys) ? '(keine)' : implode(', ', array_keys($unusedSettingKeys)));
+        if (!empty($otherDeviceLists)) {
+            $parts = [];
+            foreach ($otherDeviceLists as $key => $count) {
+                $parts[] = $key . ' (' . $count . ')';
+            }
+            $summary[] = 'Weitere Gerätelisten im Konto (nicht unterstützt): ' . implode(', ', $parts);
+        }
+        $summary[] = 'Telemetrie-Kennzahlen (Energie-Endpoint): ' . (empty($energyLabels) ? '(keine gefunden)' : implode(', ', array_unique($energyLabels)));
+        $summary[] = 'Verfügbare Trend-Datasets (Report-Endpoint): ' . (empty($trendLabels) ? '(keine gefunden)' : implode(', ', array_unique($trendLabels)));
+        $summary[] = 'Vollständige Rohdaten stehen im Debug-Log (Präfix "DiagnoseApi/...").';
+
+        $text = implode("\n", $summary);
+        $this->SendDebug('DiagnoseApi/summary', $text, 0);
+        echo $text;
+    }
+
+    /**
      * Testet die Anmeldung und meldet das Ergebnis zurück (für Button im Formular).
      */
     public function TestLogin(): void
@@ -431,6 +549,18 @@ class MELCloudConnection extends IPSModuleStrict
         $labels = implode(', ', array_map(fn($d) => $d['label'] ?? '?', $data['datasets']));
         $this->SendDebug('fetchOutdoorTemperature', $unitID . ' OUTDOOR_TEMPERATURE nicht gefunden – Labels: ' . $labels, 0);
         return null;
+    }
+
+    /**
+     * Loggt langen Text (z. B. vollständige JSON-Rohantworten) in mehreren SendDebug-
+     * Aufrufen, da die Debug-Konsole einzelne Nachrichten sonst abschneidet.
+     */
+    private function chunkedDebug(string $sender, string $text, int $chunkSize = 3000): void
+    {
+        $chunks = str_split($text, $chunkSize) ?: [''];
+        foreach ($chunks as $i => $chunk) {
+            $this->SendDebug($sender . ' (' . ($i + 1) . '/' . count($chunks) . ')', $chunk, 0);
+        }
     }
 
     /**
