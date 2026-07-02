@@ -1,5 +1,11 @@
 # Changelog
 
+## Build 36 - 2026-07-02
+- Klimagerät: `Verbunden` und `Störung` von Boolean auf String-Variablen umgestellt, analog
+  zu `Status` – gleiche farbige Wertedarstellung mit Icons (`connected`/`disconnected` bzw.
+  `ok`/`fault`), aber als eigene Wert-Idents statt Ja/Nein. Da sich der Variablentyp ändert,
+  werden beide Variablen beim nächsten Update einmalig neu angelegt.
+
 ## Build 35 - 2026-07-02
 - Klimagerät: Steuerbefehle, die kurz hintereinander eintreffen (z. B. wenn eine Symcon-Szene
   Zustand, Modus, Solltemperatur und Lüfter gleichzeitig setzt), wurden bisher als mehrere

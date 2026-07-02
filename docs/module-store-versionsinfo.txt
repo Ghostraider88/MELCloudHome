@@ -1,3 +1,8 @@
+1.0 build 36
+geändert:
+- Verbunden und Störung sind jetzt String-Variablen mit farbiger Wertedarstellung
+  (wie Status) statt einfacher Ja/Nein-Werte. Werden beim Update einmalig neu angelegt.
+
 1.0 build 35
 korrigiert:
 - Szenen setzten teils nur den ersten Wert (z.B. nur Ein/Aus, aber nicht Solltemperatur/
@@ -83,17 +88,5 @@ neu:
 1.0 build 18
 geändert:
 - Modulstore-Veröffentlichung vorbereitet.
-
-1.0 build 17
-korrigiert:
-- Betriebsstatus zeigt Beschriftung und Icon statt Rohwert.
-
-1.0 build 16
-korrigiert:
-- Betriebsstatus-Darstellung angepasst (Zwischenschritt).
-
-1.0 build 15
-korrigiert:
-- WLAN-Signal- und Energiedaten-Quelle korrigiert.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.
