@@ -57,8 +57,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
         // Alte, instanzübergreifende Custom-Profile entfernen (Legacy, durch Presentations ersetzt)
         $this->removeLegacyProfiles();
-        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_BOOLEAN, $this->connectedPresentation(), 9, true);
-        $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_BOOLEAN, $this->errorPresentation(), 10, true);
+        $this->MaintainVariable('Connected', $this->Translate('Connected'), VARIABLETYPE_STRING, $this->connectedPresentation(), 9, true);
+        $this->MaintainVariable('Error', $this->Translate('Error'), VARIABLETYPE_STRING, $this->errorPresentation(), 10, true);
         $this->MaintainVariable('WiFiSignal', $this->Translate('WiFi signal'), VARIABLETYPE_INTEGER, $this->numericValuePresentation('signal-stream', ' dbm', 0), 11, true);
         $this->MaintainVariable('EnergyConsumed', $this->Translate('Energy consumed'), VARIABLETYPE_FLOAT, $this->numericValuePresentation('plug-circle-bolt', ' kWh', 2), 12, true);
         $this->MaintainVariable('OutdoorTemperature', $this->Translate('Outdoor temperature'), VARIABLETYPE_FLOAT, $this->numericValuePresentation('temperature-low', ' °C', 1), 13, true);
@@ -156,10 +156,10 @@ class MELCloudKlimageraet extends IPSModuleStrict
             $this->SetValue('VaneHorizontal', $this->apiToInt(self::VANE_H_MAP, (string) $buffer['VaneHorizontalDirection'], 0));
         }
         if (array_key_exists('IsInError', $buffer)) {
-            $this->SetValue('Error', (bool) $buffer['IsInError']);
+            $this->SetValue('Error', ((bool) $buffer['IsInError']) ? 'fault' : 'ok');
         }
         if (array_key_exists('Connected', $buffer)) {
-            $this->SetValue('Connected', (bool) $buffer['Connected']);
+            $this->SetValue('Connected', ((bool) $buffer['Connected']) ? 'connected' : 'disconnected');
         }
         if (array_key_exists('rssi', $buffer) && is_numeric($buffer['rssi'])) {
             $this->SetValue('WiFiSignal', (int) $buffer['rssi']);
@@ -513,24 +513,27 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
     /**
      * Eigene Wertedarstellung statt des Systemprofils ~Alert, dessen Beschriftung
-     * ("OK"/"Alarm") nicht änderbar ist.
+     * ("OK"/"Alarm") nicht änderbar ist. String-Variable (wie OperatingStatus), damit
+     * eigene Wert-Idents statt Boolean verwendet werden können.
      */
     private function errorPresentation(): array
     {
         return $this->valuePresentation([
-            [false, $this->Translate('No fault'), 'play', -1],
-            [true, $this->Translate('Fault'), 'triangle-exclamation', 0xFF0000]
+            ['ok', $this->Translate('No fault'), 'play', -1],
+            ['fault', $this->Translate('Fault'), 'triangle-exclamation', 0xFF0000]
         ]);
     }
 
     /**
      * Wertedarstellung für den Verbindungsstatus (ersetzt den einfachen Schalter).
+     * String-Variable (wie OperatingStatus), damit eigene Wert-Idents statt Boolean
+     * verwendet werden können.
      */
     private function connectedPresentation(): array
     {
         return $this->valuePresentation([
-            [false, $this->Translate('Disconnected'), 'wifi-slash', 16077123],
-            [true, $this->Translate('Connected'), 'wifi', 1692672]
+            ['disconnected', $this->Translate('Disconnected'), 'wifi-slash', 16077123],
+            ['connected', $this->Translate('Connected'), 'wifi', 1692672]
         ], 'wifi');
     }
 
