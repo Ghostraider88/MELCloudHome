@@ -1,5 +1,17 @@
 # Changelog
 
+## Build 35 - 2026-07-02
+- Klimagerät: Steuerbefehle, die kurz hintereinander eintreffen (z. B. wenn eine Symcon-Szene
+  Zustand, Modus, Solltemperatur und Lüfter gleichzeitig setzt), wurden bisher als mehrere
+  separate Teil-Befehle an die Cloud gesendet, wodurch teils nur der erste Wert tatsächlich
+  ankam. Alle Änderungen innerhalb eines kurzen Zeitfensters werden jetzt zu einem einzigen
+  kombinierten Befehl zusammengefasst.
+- Klimagerät: Betriebsstatus (Aus/Leerlauf/Heizen/Kühlen/…) blieb bisher dauerhaft auf dem
+  befohlenen Modus stehen (z. B. immer "Kühlen"), auch wenn das Gerät gerade nicht aktiv
+  kühlt/heizt. Der Status wird jetzt – wie im Referenz-Home-Assistant-Modul – aus dem
+  Vergleich von Raum- und Solltemperatur mit Hysterese abgeleitet und zeigt korrekt
+  "Leerlauf", wenn die Solltemperatur bereits erreicht ist.
+
 ## Build 34 - 2026-07-01
 - Configurator: Zeigte nach der automatischen Verbindung mit der Connection-Instanz teils
   dauerhaft „Keine Verbindung zum Splitter", obwohl die Verbindung tatsächlich bestand

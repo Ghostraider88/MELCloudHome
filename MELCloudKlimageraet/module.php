@@ -19,10 +19,15 @@ class MELCloudKlimageraet extends IPSModuleStrict
     private const VANE_V_MAP = [0 => 'Auto', 1 => 'One', 2 => 'Two', 3 => 'Three', 4 => 'Four', 5 => 'Five', 7 => 'Swing'];
     private const VANE_H_MAP = [0 => 'Auto', 1 => 'Left', 2 => 'LeftCentre', 3 => 'Centre', 4 => 'RightCentre', 5 => 'Right', 7 => 'Swing'];
 
-    // Verzögerung, mit der mehrere schnelle Soll-Temperatur-Änderungen (z. B. durch
-    // wiederholtes Klicken auf den Schieber) zu einem einzelnen Steuerbefehl
-    // zusammengefasst werden, statt jeden Zwischenwert sofort an die Cloud zu senden.
-    private const TEMPERATURE_DEBOUNCE_MS = 1000;
+    // Verzögerung, mit der mehrere schnelle Steuerbefehle (z. B. durch eine Symcon-Szene,
+    // die Power/Modus/Solltemperatur/Lüfter/Lamellen kurz hintereinander setzt) zu einem
+    // einzigen kombinierten Steuerbefehl zusammengefasst werden, statt mehrere einzelne
+    // Teil-Requests an die Cloud zu senden (die sich sonst gegenseitig überschreiben können).
+    private const CONTROL_DEBOUNCE_MS = 500;
+
+    // Hysterese (°C) zur Ableitung des tatsächlichen Betriebsstatus aus dem Vergleich von
+    // Raum- und Solltemperatur (siehe deriveOperatingStatus()).
+    private const OPERATING_STATUS_HYSTERESIS = 0.5;
 
     public function Create(): void
     {
@@ -30,7 +35,7 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
         $this->RegisterPropertyString('UnitID', '');
         $this->RegisterAttributeString('Capabilities', '{}');
-        $this->RegisterTimer('FlushSetTemperature', 0, 'MELA_FlushSetTemperature($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('FlushControl', 0, 'MELA_FlushControl($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges(): void
@@ -184,8 +189,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
 
         switch ($Ident) {
             case 'Power':
-                $this->control(['power' => (bool) $Value]);
                 $this->SetValue('Power', (bool) $Value);
+                $this->queueControl(['power' => (bool) $Value]);
                 break;
 
             case 'Mode':
@@ -193,17 +198,16 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 if ($api === null) {
                     return;
                 }
-                $this->control(['operationMode' => $api]);
                 $this->SetValue('Mode', (int) $Value);
                 $this->applyTemperatureRange((int) $Value);
+                $this->queueControl(['operationMode' => $api]);
                 break;
 
             case 'SetTemperature':
                 [$tempMin, $tempMax] = $this->temperatureRangeForMode((int) $this->GetValue('Mode'));
                 $temp = max($tempMin, min($tempMax, (float) $Value));
                 $this->SetValue('SetTemperature', $temp);
-                $this->SetBuffer('PendingSetTemperature', (string) $temp);
-                $this->SetTimerInterval('FlushSetTemperature', self::TEMPERATURE_DEBOUNCE_MS);
+                $this->queueControl(['setTemperature' => $temp]);
                 break;
 
             case 'FanSpeed':
@@ -211,8 +215,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 if ($api === null) {
                     return;
                 }
-                $this->control(['setFanSpeed' => $api]);
                 $this->SetValue('FanSpeed', (int) $Value);
+                $this->queueControl(['setFanSpeed' => $api]);
                 break;
 
             case 'VaneVertical':
@@ -220,8 +224,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 if ($api === null) {
                     return;
                 }
-                $this->control(['vaneVerticalDirection' => $api]);
                 $this->SetValue('VaneVertical', (int) $Value);
+                $this->queueControl(['vaneVerticalDirection' => $api]);
                 break;
 
             case 'VaneHorizontal':
@@ -229,8 +233,8 @@ class MELCloudKlimageraet extends IPSModuleStrict
                 if ($api === null) {
                     return;
                 }
-                $this->control(['vaneHorizontalDirection' => $api]);
                 $this->SetValue('VaneHorizontal', (int) $Value);
+                $this->queueControl(['vaneHorizontalDirection' => $api]);
                 break;
 
             default:
@@ -239,20 +243,39 @@ class MELCloudKlimageraet extends IPSModuleStrict
     }
 
     /**
-     * Timer-Callback (MELA_FlushSetTemperature): sendet den zuletzt gepufferten
-     * Soll-Temperatur-Wert genau einmal an die Cloud, nachdem für
-     * TEMPERATURE_DEBOUNCE_MS keine weitere Änderung mehr eingegangen ist.
+     * Puffert ein einzelnes Steuerfeld und (re-)startet den Sammel-Timer. Mehrere
+     * Änderungen, die innerhalb von CONTROL_DEBOUNCE_MS eintreffen (z. B. alle Werte
+     * einer Symcon-Szene), werden dadurch zu EINEM kombinierten Steuerbefehl
+     * zusammengefasst, statt als mehrere separate Teil-Requests an die Cloud zu gehen.
+     *
+     * @param array<string,mixed> $control Ein Feld, z.B. ['power' => true]
      */
-    public function FlushSetTemperature(): void
+    private function queueControl(array $control): void
     {
-        $this->SetTimerInterval('FlushSetTemperature', 0);
+        $pending = json_decode($this->GetBuffer('PendingControl'), true);
+        if (!is_array($pending)) {
+            $pending = [];
+        }
+        $pending = array_merge($pending, $control);
+        $this->SetBuffer('PendingControl', (string) json_encode($pending));
+        $this->SetTimerInterval('FlushControl', self::CONTROL_DEBOUNCE_MS);
+    }
 
-        $pending = $this->GetBuffer('PendingSetTemperature');
-        if ($pending === '') {
+    /**
+     * Timer-Callback (MELA_FlushControl): sendet die zuletzt gesammelten Steuerfelder
+     * genau einmal als kombinierten Steuerbefehl an die Cloud, nachdem für
+     * CONTROL_DEBOUNCE_MS keine weitere Änderung mehr eingegangen ist.
+     */
+    public function FlushControl(): void
+    {
+        $this->SetTimerInterval('FlushControl', 0);
+
+        $pending = json_decode($this->GetBuffer('PendingControl'), true);
+        if (!is_array($pending) || $pending === []) {
             return;
         }
-        $this->SetBuffer('PendingSetTemperature', '');
-        $this->control(['setTemperature' => (float) $pending]);
+        $this->SetBuffer('PendingControl', '');
+        $this->control($pending);
     }
 
     /**
@@ -285,6 +308,14 @@ class MELCloudKlimageraet extends IPSModuleStrict
      * Helfer
      * ---------------------------------------------------------------------- */
 
+    /**
+     * Leitet den tatsächlichen Betriebsstatus ab. Die Cloud liefert kein eigenes Feld dafür
+     * (z.B. "Kompressor aktiv") – daher wird, wie im Referenz-Home-Assistant-Modul
+     * (andrew-blake/melcloudhome, HVACActionDeterminer), die Raum- mit der Solltemperatur
+     * verglichen: Nur wenn die Abweichung die Hysterese überschreitet, gilt das Gerät als
+     * aktiv heizend/kühlend, sonst als Leerlauf. Ohne diesen Vergleich (Temperaturwerte
+     * fehlen) fällt die Anzeige auf den befohlenen Modus zurück.
+     */
     private function deriveOperatingStatus(array $buffer): string
     {
         if (!($buffer['Power'] ?? false)) {
@@ -293,13 +324,41 @@ class MELCloudKlimageraet extends IPSModuleStrict
         if ($buffer['InStandbyMode'] ?? false) {
             return 'idle';
         }
-        switch ((string) ($buffer['OperationMode'] ?? '')) {
-            case 'Heat':      return 'heating';
-            case 'Cool':      return 'cooling';
-            case 'Dry':       return 'drying';
-            case 'Fan':       return 'fan';
-            case 'Automatic': return 'automatic';
-            default:          return 'idle';
+
+        $mode = (string) ($buffer['OperationMode'] ?? '');
+        $room = is_numeric($buffer['RoomTemperature'] ?? null) ? (float) $buffer['RoomTemperature'] : null;
+        $set  = is_numeric($buffer['SetTemperature'] ?? null) ? (float) $buffer['SetTemperature'] : null;
+
+        if ($room === null || $set === null) {
+            switch ($mode) {
+                case 'Heat':      return 'heating';
+                case 'Cool':      return 'cooling';
+                case 'Dry':       return 'drying';
+                case 'Fan':       return 'fan';
+                case 'Automatic': return 'automatic';
+                default:          return 'idle';
+            }
+        }
+
+        switch ($mode) {
+            case 'Heat':
+                return $room < $set - self::OPERATING_STATUS_HYSTERESIS ? 'heating' : 'idle';
+            case 'Cool':
+                return $room > $set + self::OPERATING_STATUS_HYSTERESIS ? 'cooling' : 'idle';
+            case 'Automatic':
+                if ($room < $set - self::OPERATING_STATUS_HYSTERESIS) {
+                    return 'heating';
+                }
+                if ($room > $set + self::OPERATING_STATUS_HYSTERESIS) {
+                    return 'cooling';
+                }
+                return 'idle';
+            case 'Dry':
+                return 'drying';
+            case 'Fan':
+                return 'fan';
+            default:
+                return 'idle';
         }
     }
 

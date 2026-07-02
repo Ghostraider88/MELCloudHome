@@ -24,7 +24,7 @@ statt klassischer Variablenprofile.
 |----------|-------------|--------------|
 | Raumtemperatur | Wertedarstellung | aktuelle Raumtemperatur |
 | Außentemperatur | Wertedarstellung | Außentemperatur (nur bei Geräten mit Außensensor) |
-| Status | Wertedarstellung | abgeleitet (Aus/Leerlauf/Heizen/Kühlen/Entfeuchten/Lüften/Automatik) |
+| Status | Wertedarstellung | abgeleitet aus Betriebsmodus + Temperaturvergleich (Aus/Leerlauf/Heizen/Kühlen/Entfeuchten/Lüften/Automatik) |
 | Verbunden | Wertedarstellung | echter Cloud-/WLAN-Verbindungsstatus des Geräts |
 | Störung | Wertedarstellung | Fehlerzustand des Geräts |
 | WLAN-Signal | Wertedarstellung | Signalstärke in dBm |
@@ -37,3 +37,10 @@ statt klassischer Variablenprofile.
 - Der Bereich der Solltemperatur wird beim Moduswechsel automatisch anhand der vom Gerät
   gemeldeten Fähigkeiten (`capabilities` aus der Cloud-Antwort) angepasst – z. B. erlauben
   manche Geräte im Heizmodus niedrigere Werte als im Kühl-/Trocken-/Automatikmodus.
+- Mehrere Steuerbefehle, die kurz hintereinander eintreffen (z. B. wenn eine Symcon-Szene
+  Zustand, Modus, Solltemperatur und Lüfter gleichzeitig setzt), werden zu einem einzigen
+  kombinierten Befehl an die Cloud zusammengefasst (Sammelfenster ca. 0,5 s), statt als
+  mehrere separate Teil-Befehle gesendet zu werden.
+- Der Status (Aus/Leerlauf/Heizen/Kühlen/…) wird – mangels eines eigenen API-Felds dafür –
+  aus dem Vergleich von Raum- und Solltemperatur mit 0,5 °C Hysterese abgeleitet: Nur bei
+  ausreichender Abweichung gilt das Gerät als aktiv heizend/kühlend, sonst als Leerlauf.
