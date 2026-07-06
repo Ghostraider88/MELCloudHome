@@ -29,8 +29,9 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->RegisterPropertyString('Email', '');
         $this->RegisterPropertyString('Password', '');
-        $this->RegisterPropertyInteger('UpdateInterval', 60);   // Sekunden
-        $this->RegisterPropertyInteger('EnergyInterval', 30);   // Minuten
+        $this->RegisterPropertyInteger('UpdateInterval', 60);              // Sekunden
+        $this->RegisterPropertyInteger('EnergyInterval', 30);              // Minuten
+        $this->RegisterPropertyInteger('OutdoorTemperatureInterval', 30);  // Minuten
 
         // Token werden als Attribute (nicht im Formular) gespeichert
         $this->RegisterAttributeString('AccessToken', '');
@@ -39,6 +40,7 @@ class MELCloudConnection extends IPSModuleStrict
 
         $this->RegisterTimer('UpdateStatus', 0, 'MELC_UpdateStatus($_IPS[\'TARGET\']);');
         $this->RegisterTimer('UpdateEnergy', 0, 'MELC_UpdateEnergy($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('UpdateOutdoorTemperature', 0, 'MELC_UpdateOutdoorTemperature($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges(): void
@@ -49,6 +51,7 @@ class MELCloudConnection extends IPSModuleStrict
             $this->SetStatus(104); // inaktiv: Zugangsdaten fehlen
             $this->SetTimerInterval('UpdateStatus', 0);
             $this->SetTimerInterval('UpdateEnergy', 0);
+            $this->SetTimerInterval('UpdateOutdoorTemperature', 0);
             return;
         }
 
@@ -57,11 +60,16 @@ class MELCloudConnection extends IPSModuleStrict
         // Status (Solltemperatur, Raumtemperatur, Modus, Lüfter, Vanes, Power) – 60s ist die
         // sinnvolle Untergrenze für MELCloud; aggressiveres Polling (10s/30s) wird unterbunden.
         $statusInterval = max(60, $this->ReadPropertyInteger('UpdateInterval')) * 1000;
-        // Energie-/Verbrauchsdaten – deutlich rate-limit-empfindlicher (bekannte 429-Fehler),
+        // Energieverbrauch – deutlich rate-limit-empfindlicher (bekannte 429-Fehler),
         // daher mindestens 30 Minuten.
         $energyInterval = max(30, $this->ReadPropertyInteger('EnergyInterval')) * 60 * 1000;
+        // Außentemperatur läuft über einen anderen Endpoint (trendsummary statt Energie-
+        // Telemetrie) und wird daher unabhängig konfiguriert – Untergrenze bewusst niedriger
+        // (5 Minuten), um testen zu können, ob dieser Endpoint andere Rate-Limits hat.
+        $outdoorTemperatureInterval = max(5, $this->ReadPropertyInteger('OutdoorTemperatureInterval')) * 60 * 1000;
         $this->SetTimerInterval('UpdateStatus', $statusInterval);
         $this->SetTimerInterval('UpdateEnergy', $energyInterval);
+        $this->SetTimerInterval('UpdateOutdoorTemperature', $outdoorTemperatureInterval);
     }
 
     /* -------------------------------------------------------------------------
@@ -76,6 +84,7 @@ class MELCloudConnection extends IPSModuleStrict
     {
         $this->UpdateStatus();
         $this->UpdateEnergy();
+        $this->UpdateOutdoorTemperature();
         echo $this->Translate('Done. Check the debug output for details.');
     }
 
@@ -259,36 +268,50 @@ class MELCloudConnection extends IPSModuleStrict
     }
 
     /**
-     * Pollt Energiedaten und Außentemperatur je Gerät (seltener) und verteilt sie an die Kinder.
+     * Pollt den Energieverbrauch je Gerät (seltener) und verteilt ihn an die Kinder.
      */
     public function UpdateEnergy(): void
     {
         foreach ($this->getChildUnitIDs() as $unitID) {
-            $payload = ['UnitID' => $unitID];
-
             try {
-                $payload['EnergyConsumed'] = $this->fetchEnergy($unitID);
+                $energy = $this->fetchEnergy($unitID);
             } catch (Exception $e) {
                 $this->SendDebug(__FUNCTION__, $unitID . ' Energie: ' . $e->getMessage(), 0);
+                continue;
             }
+            $this->sendToChild($unitID, ['EnergyConsumed' => $energy]);
+        }
+    }
 
+    /**
+     * Pollt die Außentemperatur je Gerät (eigenes, unabhängig konfigurierbares Intervall)
+     * und verteilt sie an die Kinder.
+     */
+    public function UpdateOutdoorTemperature(): void
+    {
+        foreach ($this->getChildUnitIDs() as $unitID) {
             try {
                 $temp = $this->fetchOutdoorTemperature($unitID);
-                if ($temp !== null) {
-                    $payload['OutdoorTemperature'] = $temp;
-                }
             } catch (Exception $e) {
                 $this->SendDebug(__FUNCTION__, $unitID . ' Außentemperatur: ' . $e->getMessage(), 0);
+                continue;
             }
-
-            if (count($payload) > 1) {
-                $this->SendDataToChildren((string) json_encode([
-                    'DataID' => self::TX_TO_CHILD,
-                    'UnitID' => $unitID,
-                    'Buffer' => bin2hex((string) json_encode($payload))
-                ]));
+            if ($temp !== null) {
+                $this->sendToChild($unitID, ['OutdoorTemperature' => $temp]);
             }
         }
+    }
+
+    /**
+     * @param array<string,mixed> $fields Zusätzlich zur UnitID zu übertragende Felder.
+     */
+    private function sendToChild(string $unitID, array $fields): void
+    {
+        $this->SendDataToChildren((string) json_encode([
+            'DataID' => self::TX_TO_CHILD,
+            'UnitID' => $unitID,
+            'Buffer' => bin2hex((string) json_encode(array_merge(['UnitID' => $unitID], $fields)))
+        ]));
     }
 
     /* -------------------------------------------------------------------------

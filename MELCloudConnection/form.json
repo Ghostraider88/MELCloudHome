@@ -23,6 +23,13 @@
             "caption": "Energie-Aktualisierung (Minuten, min. 30)",
             "minimum": 30,
             "suffix": "min"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "OutdoorTemperatureInterval",
+            "caption": "Außentemperatur-Aktualisierung (Minuten, min. 5)",
+            "minimum": 5,
+            "suffix": "min"
         }
     ],
     "actions": [
