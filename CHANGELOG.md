@@ -1,5 +1,12 @@
 # Changelog
 
+## Build 37 - 2026-07-02
+- Connection: Neues, eigenständiges Intervall für die Außentemperatur-Aktualisierung
+  (bisher fest an das Energie-Intervall mit 30-Minuten-Minimum gekoppelt). Die
+  Außentemperatur läuft über einen anderen Cloud-Endpunkt als der Energieverbrauch und
+  kann jetzt unabhängig bis auf 5 Minuten heruntergestellt werden, um zu testen, ob dieser
+  Endpunkt andere Rate-Limits als der Energie-Endpoint hat.
+
 ## Build 36 - 2026-07-02
 - Klimagerät: `Verbunden` und `Störung` von Boolean auf String-Variablen umgestellt, analog
   zu `Status` – gleiche farbige Wertedarstellung mit Icons (`connected`/`disconnected` bzw.

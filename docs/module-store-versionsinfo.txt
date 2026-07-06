@@ -1,3 +1,8 @@
+1.0 build 37
+neu:
+- Eigenes Intervall für die Außentemperatur-Aktualisierung (Minuten, min. 5), unabhängig
+  vom Energie-Intervall.
+
 1.0 build 36
 geändert:
 - Verbunden und Störung sind jetzt String-Variablen mit farbiger Wertedarstellung
@@ -79,14 +84,5 @@ neu:
 1.0 build 20
 korrigiert:
 - Zulässiger Bereich der Solltemperatur auf 16-31 °C korrigiert.
-
-1.0 build 19
-neu:
-- Eigene Wertedarstellung für die Störungsvariable (anpassbare Beschriftung statt
-  "OK"/"Alarm").
-
-1.0 build 18
-geändert:
-- Modulstore-Veröffentlichung vorbereitet.
 
 Ältere Historie: siehe CHANGELOG.md im Repository.

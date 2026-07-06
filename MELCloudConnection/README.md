@@ -21,6 +21,7 @@ für die Klimageräte dient.
 | Passwort | Passwort des Kontos |
 | Status-Aktualisierung | Polling-Intervall für den Gerätestatus (Sekunden, min. 60) |
 | Energie-Aktualisierung | Polling-Intervall für den Energieverbrauch (Minuten, min. 30) |
+| Außentemperatur-Aktualisierung | Polling-Intervall für die Außentemperatur (Minuten, min. 5) |
 
 ## Hinweise
 
@@ -28,13 +29,17 @@ für die Klimageräte dient.
   Betriebsmodus, Lüfterstufe, Vane-Einstellungen, Power-State). 60 Sekunden ist die sinnvolle
   Untergrenze für die MELCloud-Statusdaten – lokale Fernbedienungs-Änderungen sind damit binnen
   ca. einer Minute sichtbar, ohne die Cloud aggressiv abzufragen (kein 10s/30s-Polling).
-- Energie-/Verbrauchsdaten werden bewusst seltener (≥30 Minuten) abgefragt, da diese Endpunkte
-  empfindlicher auf häufige Abfragen reagieren (bekannte HTTP-429-Throttling-Fehler).
+- Energieverbrauch wird bewusst seltener (≥30 Minuten) abgefragt, da dieser Telemetrie-Endpunkt
+  empfindlich auf häufige Abfragen reagiert (bekannte HTTP-429-Throttling-Fehler).
+- Die Außentemperatur läuft über einen anderen Endpoint (Trendsummary/Report statt Energie-
+  Telemetrie) und wird deshalb unabhängig konfiguriert – mit niedrigerer Untergrenze (5 Minuten),
+  um testen zu können, ob dieser Endpoint andere Rate-Limits hat als der Energie-Endpoint. Bei
+  wiederholten HTTP-429-Fehlern im Debug-Log das Intervall wieder erhöhen.
 
 ## Aktionen
 
 - **Login testen** – prüft die Zugangsdaten und zeigt die Anzahl gefundener Klimageräte.
-- **Alle Daten abrufen** – löst einmalig einen sofortigen Status- und Energie-/
+- **Alle Daten abrufen** – löst einmalig einen sofortigen Status-, Energie- und
   Außentemperatur-Abruf für alle angelegten Geräte aus (nützlich zum Testen der Einrichtung).
 - **API-Diagnose ausführen** – ruft `/context`, den Energie- und den Trendsummary-Endpunkt für
   ein Beispielgerät ab, loggt die vollständigen Rohantworten ins Debug und meldet, welche von
